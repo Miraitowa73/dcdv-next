@@ -2256,7 +2256,10 @@
 
     <main class="flex-1 relative bg-slate-950 flex flex-col min-w-0">
         <header class="app-header h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/70 backdrop-blur-md shadow-sm z-40 shrink-0">
-            <h2 id="header-title" class="text-lg font-semibold text-slate-200">Digital Circuit Design Visualizer</h2>
+            <div class="flex items-center gap-3">
+                <h2 id="header-title" class="text-lg font-semibold text-slate-200">Digital Circuit Design Visualizer</h2>
+                <span class="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-cyan-300">DCDV NEXT · 独立开发版</span>
+            </div>
             <div class="institution-logo" aria-hidden="true" style="display: none;">
                 <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
             </div>
@@ -4934,7 +4937,9 @@
             updateWaveBlockingHint();
         }
 
-        const DCDV_FC_API_BASE = 'https://dcdv-online-beydonrfai.cn-hangzhou.fcapp.run';
+        // Fail closed until the isolated DCDV NEXT FC domain is provisioned.
+        // Never point this development edition at the protected legacy backend.
+        const DCDV_FC_API_BASE = 'https://dcdv-next.invalid';
 
         function getDcdvApiBase() {
             const override = String(window.DCDV_API_BASE || '').trim().replace(/\/+$/, '');

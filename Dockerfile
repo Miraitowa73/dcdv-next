@@ -1,5 +1,8 @@
 FROM node:22-bookworm-slim
 
+LABEL org.opencontainers.image.title="DCDV NEXT"
+LABEL org.opencontainers.image.description="Isolated backend for the DCDV NEXT GitHub Pages site"
+
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=7860

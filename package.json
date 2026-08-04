@@ -1,7 +1,7 @@
 {
-  "name": "dcdv-local-backend",
+  "name": "dcdv-next-backend",
   "version": "1.0.0",
-  "description": "DCDV local backend with real Verilog compile/simulate flow",
+  "description": "Isolated DCDV NEXT backend with real Verilog compile/simulate flow",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

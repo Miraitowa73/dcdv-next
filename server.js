@@ -19,6 +19,7 @@ const {
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || 3030);
 const PROJECT_ROOT = __dirname;
+const DEPLOYMENT_ID = process.env.DCDV_DEPLOYMENT_ID || 'dcdv-next-local';
 
 const DEFAULT_RATE_LIMITS = {
   ai: {
@@ -299,7 +300,8 @@ async function handleApi(req, res, pathname, context) {
     const toolchain = await handlers.getToolchainStatus();
     sendJson(res, 200, {
       ok: true,
-      service: 'dcdv-local-backend',
+      service: 'dcdv-next-backend',
+      deployment: DEPLOYMENT_ID,
       toolchain,
     });
     return;

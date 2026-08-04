@@ -1,0 +1,19 @@
+{
+  "legacy": {
+    "repository": "https://github.com/miraitowa73/dcdv-online",
+    "commit": "f74a13609c2394a81fd4037945ba779180146a09",
+    "frontend_url": "https://miraitowa73.github.io/dcdv-online/DCDV.html",
+    "frontend_sha256_utf8": "31a6f7f4e54ea70d3bce2884b21e90565c0a0eaba33307ccd0f7c762143251a4",
+    "backend_url": "https://dcdv-online-beydonrfai.cn-hangzhou.fcapp.run",
+    "protected": true
+  },
+  "next": {
+    "repository": "https://github.com/miraitowa73/dcdv-next",
+    "branch": "main",
+    "frontend_url": "https://miraitowa73.github.io/dcdv-next/",
+    "backend_url": null,
+    "acr_image": "registry.cn-hangzhou.aliyuncs.com/dcdv/dcdv-next:fc-next-1",
+    "fc_service": "dcdv-fc-next",
+    "fc_function": "dcdv-next"
+  }
+}
