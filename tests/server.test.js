@@ -81,6 +81,7 @@ test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   assert.match(html, /src="\.\/auth-local\.js"/);
   assert.match(html, /数字电路可视化Agent/);
   assert.match(html, /\.\/assets\/DCDV_agent_cover_v1\.png/);
+  assert.doesNotMatch(html, /\.auth-brand::after/);
   assert.match(html, /onclick="switchDcdvAccount\(\)"/);
   assert.match(html, />切换账号</);
   assert.match(html, />退出登录</);
