@@ -18,7 +18,8 @@ function makeProjectRoot() {
   fs.mkdirSync(path.join(root, 'screenshots'));
   fs.writeFileSync(path.join(root, 'screenshots', 'preview.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   fs.mkdirSync(path.join(root, 'assets'));
-  fs.writeFileSync(path.join(root, 'assets', 'DCDV_agent_cover_v1.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  fs.writeFileSync(path.join(root, 'assets', 'dcdv-login-cover-v1.webp'), Buffer.from('RIFF'));
+  fs.writeFileSync(path.join(root, 'assets', 'scu-eec-logo-v1.webp'), Buffer.from('RIFF'));
   return root;
 }
 
@@ -80,13 +81,18 @@ test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   assert.match(html, /id="auth-overlay"/);
   assert.match(html, /src="\.\/auth-local\.js"/);
   assert.match(html, /数字电路可视化Agent/);
-  assert.match(html, /\.\/assets\/DCDV_agent_cover_v1\.png/);
+  assert.match(html, /rel="preload" as="image" href="\.\/assets\/dcdv-login-cover-v1\.webp" type="image\/webp" fetchpriority="high"/);
+  assert.match(html, /rel="preload" as="image" href="\.\/assets\/scu-eec-logo-v1\.webp" type="image\/webp" fetchpriority="high"/);
+  assert.equal((html.match(/\.\/assets\/dcdv-login-cover-v1\.webp/g) || []).length, 2);
+  assert.equal((html.match(/\.\/assets\/scu-eec-logo-v1\.webp/g) || []).length, 3);
+  assert.doesNotMatch(html, /eec\.scu\.edu\.cn\/images\/logo-dgdz\.png/);
+  assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', 'dcdv-login-cover-v1.webp')).size <= 100 * 1024);
+  assert.ok(fs.statSync(path.join(__dirname, '..', 'assets', 'scu-eec-logo-v1.webp')).size <= 15 * 1024);
   assert.doesNotMatch(html, /\.auth-brand::after/);
   assert.match(html, /onclick="switchDcdvAccount\(\)"/);
   assert.match(html, />切换账号</);
   assert.match(html, />退出登录</);
   assert.doesNotMatch(html, /登录当前设备上的 DCDV NEXT 用户/);
-  assert.equal((html.match(/https:\/\/eec\.scu\.edu\.cn\/images\/logo-dgdz\.png/g) || []).length, 2);
 });
 
 test('static server only exposes the app page and public images', async () => {
@@ -103,9 +109,13 @@ test('static server only exposes the app page and public images', async () => {
     assert.equal(image.statusCode, 200);
     assert.equal(image.headers['content-type'], 'image/png');
 
-    const loginCover = await request(port, { pathname: '/assets/DCDV_agent_cover_v1.png' });
+    const loginCover = await request(port, { pathname: '/assets/dcdv-login-cover-v1.webp' });
     assert.equal(loginCover.statusCode, 200);
-    assert.equal(loginCover.headers['content-type'], 'image/png');
+    assert.equal(loginCover.headers['content-type'], 'image/webp');
+
+    const institutionLogo = await request(port, { pathname: '/assets/scu-eec-logo-v1.webp' });
+    assert.equal(institutionLogo.statusCode, 200);
+    assert.equal(institutionLogo.headers['content-type'], 'image/webp');
 
     const authModule = await request(port, { pathname: '/auth-local.js' });
     assert.equal(authModule.statusCode, 200);

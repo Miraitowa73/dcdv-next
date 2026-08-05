@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCDV - Digital Circuit Design Visualizer</title>
+    <link rel="preload" as="image" href="./assets/dcdv-login-cover-v1.webp" type="image/webp" fetchpriority="high">
+    <link rel="preload" as="image" href="./assets/scu-eec-logo-v1.webp" type="image/webp" fetchpriority="high">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
@@ -2231,7 +2233,7 @@
             place-items: center;
             overflow: auto;
             padding: clamp(1.25rem, 4vw, 4rem);
-            background: #020617 url('./assets/DCDV_agent_cover_v1.png') center / cover no-repeat;
+            background: #020617 url('./assets/dcdv-login-cover-v1.webp') center / cover no-repeat;
             opacity: 1;
             visibility: visible;
             transition: opacity .24s ease, visibility .24s ease;
@@ -2507,7 +2509,7 @@
             <section class="auth-brand" aria-label="Digital Circuit Design Visualizer">
                 <div class="auth-brand-top">
                     <div class="auth-institution-logo">
-                        <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
+                        <img src="./assets/scu-eec-logo-v1.webp" width="733" height="71" decoding="async" fetchpriority="high" alt="四川大学电工电子基础实验教学中心">
                     </div>
                     <div class="auth-mark">
                         <span class="auth-mark-icon"><i data-lucide="cpu" class="w-5 h-5"></i></span>
@@ -2581,7 +2583,7 @@
                 <h2 id="header-title" class="text-lg font-semibold text-slate-200">Digital Circuit Design Visualizer</h2>
             </div>
             <div class="institution-logo">
-                <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
+                <img src="./assets/scu-eec-logo-v1.webp" width="733" height="71" loading="lazy" decoding="async" alt="四川大学电工电子基础实验教学中心">
             </div>
             <div id="account-controls" class="relative hidden">
                 <button id="account-trigger" type="button" class="account-trigger" aria-haspopup="menu" aria-expanded="false" onclick="toggleAccountMenu(event)">
