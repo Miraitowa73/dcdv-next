@@ -1203,7 +1203,7 @@
         }
         .app-header {
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
         .app-header::before {
             content: '';
@@ -2465,6 +2465,7 @@
             position: absolute;
             top: calc(100% + .65rem);
             right: 0;
+            z-index: 60;
             width: 238px;
             overflow: hidden;
             border: 1px solid rgba(71, 85, 105, .55);
@@ -2596,7 +2597,6 @@
         <header class="app-header h-16 border-b border-white/5 flex items-center justify-between px-6 bg-slate-900/70 backdrop-blur-md shadow-sm z-40 shrink-0">
             <div class="flex items-center gap-3">
                 <h2 id="header-title" class="text-lg font-semibold text-slate-200">Digital Circuit Design Visualizer</h2>
-                <span class="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-cyan-300">DCDV NEXT · 独立开发版</span>
             </div>
             <div class="institution-logo">
                 <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
@@ -2615,6 +2615,9 @@
                         <div class="text-[10px] uppercase tracking-[.16em] text-slate-600">当前本机用户</div>
                         <div id="account-menu-username" class="mt-1 truncate text-sm font-semibold text-slate-200">用户</div>
                     </div>
+                    <button type="button" class="account-menu-action" role="menuitem" onclick="switchDcdvAccount()">
+                        <i data-lucide="users" class="w-4 h-4"></i><span>切换账号</span>
+                    </button>
                     <button type="button" class="account-menu-action" role="menuitem" onclick="exportCurrentProgress()">
                         <i data-lucide="download" class="w-4 h-4"></i><span>导出闯关进度</span>
                     </button>
@@ -5772,6 +5775,14 @@
         }
 
         async function logoutDcdvUser() {
+            await leaveCurrentDcdvSession('已退出登录。');
+        }
+
+        async function switchDcdvAccount() {
+            await leaveCurrentDcdvSession('请选择要登录的账号。');
+        }
+
+        async function leaveCurrentDcdvSession(message = '') {
             closeAccountMenu();
             await flushChallengeProgress();
             window.DcdvLocalAuth?.clearSession();
@@ -5782,8 +5793,11 @@
             updateAccountUi();
             setAuthMode('login');
             setAppLocked(true);
-            document.getElementById('auth-username').value = '';
-            document.getElementById('auth-password').value = '';
+            const usernameInput = document.getElementById('auth-username');
+            const passwordInput = document.getElementById('auth-password');
+            if (usernameInput) usernameInput.value = '';
+            if (passwordInput) passwordInput.value = '';
+            if (message) setAuthMessage(message, 'success');
             requestAnimationFrame(() => document.getElementById('auth-username')?.focus());
         }
 

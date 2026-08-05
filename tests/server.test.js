@@ -74,10 +74,13 @@ test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'DCDV.html'), 'utf8');
   assert.doesNotMatch(html, /dcdv-online-beydonrfai\.cn-hangzhou\.fcapp\.run/);
   assert.doesNotMatch(html, /dcdvChallengeProgressV1/);
-  assert.match(html, /DCDV NEXT · 独立开发版/);
+  assert.doesNotMatch(html, /DCDV NEXT · 独立开发版/);
   assert.match(html, /id="auth-overlay"/);
   assert.match(html, /src="\.\/auth-local\.js"/);
   assert.match(html, /数字电路可视化Agent/);
+  assert.match(html, /onclick="switchDcdvAccount\(\)"/);
+  assert.match(html, />切换账号</);
+  assert.match(html, />退出登录</);
   assert.doesNotMatch(html, /登录当前设备上的 DCDV NEXT 用户/);
   assert.equal((html.match(/https:\/\/eec\.scu\.edu\.cn\/images\/logo-dgdz\.png/g) || []).length, 2);
 });
