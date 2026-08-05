@@ -18,7 +18,7 @@ disabled.
 - Repository: `miraitowa73/dcdv-next`
 - GitHub Pages: `https://miraitowa73.github.io/dcdv-next/`
 - ACR repository: `dcdv/dcdv-next`
-- Image tag: `fc-next-1`
+- Image: `crpi-a6e6wn4ngz2b118w.cn-hangzhou.personal.cr.aliyuncs.com/dcdv/dcdv-next:fc-next-1`
 - FC service: `dcdv-fc-next`
 - FC function: `dcdv-next`
 - Runtime port: `7860`
@@ -29,6 +29,19 @@ belong to the new `dcdv-next` ACR workflow and must never be committed.
 
 The frontend API base in `DCDV.html` must contain only the new FC default
 domain. Never use the legacy backend URL in a DCDV NEXT release.
+
+## Local accounts and progress
+
+- Accounts and per-user learning progress live only in IndexedDB database
+  `dcdvNextLocalAccountsV1`; no auth or progress data is sent to FC.
+- Passwords are verified with PBKDF2-SHA256 (310,000 iterations), a unique
+  16-byte salt, and a 32-byte derived value. Plaintext passwords are never
+  stored or exported.
+- The active user id is stored in `sessionStorage`, so refresh keeps the
+  session while a new browser session requires login again.
+- Progress exports use format `dcdv-next-progress`, version `1`, and contain
+  no credential data. Clearing browser data removes local accounts and
+  progress unless a backup was exported first.
 
 ## Required FC environment variables
 

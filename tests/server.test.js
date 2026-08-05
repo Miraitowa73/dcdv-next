@@ -10,6 +10,7 @@ const { createDcdvServer } = require('../server');
 function makeProjectRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dcdv-server-'));
   fs.writeFileSync(path.join(root, 'DCDV.html'), '<!doctype html><title>DCDV</title>');
+  fs.writeFileSync(path.join(root, 'auth-local.js'), 'window.DcdvLocalAuth = {};');
   fs.writeFileSync(path.join(root, 'server.js'), 'secret');
   fs.writeFileSync(path.join(root, 'deepseek.config.json'), '{"apiKey":"sk-secret"}');
   fs.mkdirSync(path.join(root, 'backend'));
@@ -72,7 +73,10 @@ function request(port, { method = 'GET', pathname = '/', body, headers = {} } = 
 test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'DCDV.html'), 'utf8');
   assert.doesNotMatch(html, /dcdv-online-beydonrfai\.cn-hangzhou\.fcapp\.run/);
+  assert.doesNotMatch(html, /dcdvChallengeProgressV1/);
   assert.match(html, /DCDV NEXT · 独立开发版/);
+  assert.match(html, /id="auth-overlay"/);
+  assert.match(html, /src="\.\/auth-local\.js"/);
 });
 
 test('static server only exposes the app page and public images', async () => {
@@ -88,6 +92,10 @@ test('static server only exposes the app page and public images', async () => {
     const image = await request(port, { pathname: '/screenshots/preview.png' });
     assert.equal(image.statusCode, 200);
     assert.equal(image.headers['content-type'], 'image/png');
+
+    const authModule = await request(port, { pathname: '/auth-local.js' });
+    assert.equal(authModule.statusCode, 200);
+    assert.equal(authModule.headers['content-type'], 'application/javascript; charset=utf-8');
 
     const serverSource = await request(port, { pathname: '/server.js' });
     assert.equal(serverSource.statusCode, 403);

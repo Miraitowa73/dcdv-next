@@ -158,6 +158,10 @@ function resolvePublicStaticPath(projectRoot, pathname) {
     return path.join(projectRoot, 'DCDV.html');
   }
 
+  if (pathname === '/auth-local.js') {
+    return path.join(projectRoot, 'auth-local.js');
+  }
+
   if (pathname.startsWith('/screenshots/')) {
     const ext = path.posix.extname(pathname).toLowerCase();
     if (!PUBLIC_IMAGE_EXTENSIONS.has(ext)) return null;

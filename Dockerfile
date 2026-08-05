@@ -16,7 +16,7 @@ RUN apt-get update \
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY DCDV.html server.js ./
+COPY DCDV.html auth-local.js server.js ./
 COPY backend ./backend
 COPY screenshots ./screenshots
 COPY assets ./assets

@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
         with:
-          registry: registry.cn-hangzhou.aliyuncs.com
+          registry: crpi-a6e6wn4ngz2b118w.cn-hangzhou.personal.cr.aliyuncs.com
           username: ${{ secrets.ALIYUN_ACR_USERNAME }}
           password: ${{ secrets.ALIYUN_ACR_PASSWORD }}
       - uses: docker/setup-buildx-action@v3
@@ -26,4 +26,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: registry.cn-hangzhou.aliyuncs.com/dcdv/dcdv-next:${{ inputs.image_tag }}
+          tags: crpi-a6e6wn4ngz2b118w.cn-hangzhou.personal.cr.aliyuncs.com/dcdv/dcdv-next:${{ inputs.image_tag }}
