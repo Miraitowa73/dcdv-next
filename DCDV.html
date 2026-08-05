@@ -2300,6 +2300,10 @@
             letter-spacing: .16em;
             text-transform: uppercase;
         }
+        .auth-brand-top {
+            position: relative;
+            z-index: 1;
+        }
         .auth-mark-icon {
             width: 2.65rem;
             height: 2.65rem;
@@ -2337,7 +2341,7 @@
             position: relative;
             z-index: 1;
             width: min(100%, 440px);
-            margin-top: 2rem;
+            margin-bottom: 1.5rem;
             opacity: .94;
             filter: drop-shadow(0 3px 16px rgba(0, 0, 0, .38));
         }
@@ -2372,7 +2376,6 @@
         }
         .auth-form-wrap { width: 100%; max-width: 360px; margin: 0 auto; }
         .auth-form-heading { color: #f1f5f9; font-size: 1.55rem; font-weight: 700; letter-spacing: -.025em; }
-        .auth-form-copy { margin-top: .55rem; color: #64748b; font-size: .82rem; line-height: 1.65; }
         .auth-tabs {
             position: relative;
             display: grid;
@@ -2507,7 +2510,7 @@
             .auth-brand-copy { margin: 2.4rem 0 1rem; }
             .auth-title { font-size: clamp(2.35rem, 12vw, 3.4rem); }
             .auth-title.auth-title-zh { max-width: 12ch; font-size: clamp(2rem, 9vw, 2.85rem); }
-            .auth-institution-logo { width: min(100%, 360px); margin-top: 1.4rem; }
+            .auth-institution-logo { width: min(100%, 360px); margin-bottom: 1rem; }
             .auth-data-note { display: none; }
             .auth-form-side { padding: 2rem; }
             #header-title { display: none; }
@@ -2519,21 +2522,22 @@
     <div id="auth-overlay" class="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="auth-title">
         <div class="auth-shell">
             <section class="auth-brand" aria-label="Digital Circuit Design Visualizer">
-                <div class="auth-mark">
-                    <span class="auth-mark-icon"><i data-lucide="cpu" class="w-5 h-5"></i></span>
-                    <span>Digital Circuit Design Visualizer</span>
-                </div>
-                <div class="auth-brand-copy">
-                    <h1 class="auth-title auth-title-zh">数字电路可视化Agent</h1>
+                <div class="auth-brand-top">
                     <div class="auth-institution-logo">
                         <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
                     </div>
+                    <div class="auth-mark">
+                        <span class="auth-mark-icon"><i data-lucide="cpu" class="w-5 h-5"></i></span>
+                        <span>Digital Circuit Design Visualizer</span>
+                    </div>
+                </div>
+                <div class="auth-brand-copy">
+                    <h1 class="auth-title auth-title-zh">数字电路可视化Agent</h1>
                 </div>
             </section>
             <section class="auth-form-side">
                 <div class="auth-form-wrap">
                     <h2 id="auth-title" class="auth-form-heading">进入学习空间</h2>
-                    <p id="auth-form-copy" class="auth-form-copy">登录当前设备上的 DCDV NEXT 用户。</p>
                     <div class="auth-tabs" role="tablist" aria-label="登录或注册">
                         <button id="auth-login-tab" type="button" class="auth-tab active" role="tab" aria-selected="true" onclick="setAuthMode('login')">登录</button>
                         <button id="auth-register-tab" type="button" class="auth-tab" role="tab" aria-selected="false" onclick="setAuthMode('register')">注册</button>
@@ -5607,7 +5611,6 @@
             const confirmInput = document.getElementById('auth-password-confirm');
             const passwordInput = document.getElementById('auth-password');
             const submit = document.getElementById('auth-submit');
-            const copy = document.getElementById('auth-form-copy');
             loginTab?.classList.toggle('active', !isRegister);
             registerTab?.classList.toggle('active', isRegister);
             loginTab?.setAttribute('aria-selected', String(!isRegister));
@@ -5619,9 +5622,6 @@
             }
             if (passwordInput) passwordInput.autocomplete = isRegister ? 'new-password' : 'current-password';
             if (submit) submit.textContent = isRegister ? '创建用户并进入' : '登录并继续';
-            if (copy) copy.textContent = isRegister
-                ? '在当前设备上创建独立的学习档案。'
-                : '登录当前设备上的 DCDV NEXT 用户。';
             setAuthMessage('');
         }
 

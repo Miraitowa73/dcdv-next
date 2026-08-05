@@ -78,6 +78,7 @@ test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   assert.match(html, /id="auth-overlay"/);
   assert.match(html, /src="\.\/auth-local\.js"/);
   assert.match(html, /数字电路可视化Agent/);
+  assert.doesNotMatch(html, /登录当前设备上的 DCDV NEXT 用户/);
   assert.equal((html.match(/https:\/\/eec\.scu\.edu\.cn\/images\/logo-dgdz\.png/g) || []).length, 2);
 });
 
