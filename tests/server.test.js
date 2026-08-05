@@ -17,6 +17,8 @@ function makeProjectRoot() {
   fs.writeFileSync(path.join(root, 'backend', 'deepseek-ai.js'), 'secret');
   fs.mkdirSync(path.join(root, 'screenshots'));
   fs.writeFileSync(path.join(root, 'screenshots', 'preview.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  fs.mkdirSync(path.join(root, 'assets'));
+  fs.writeFileSync(path.join(root, 'assets', 'DCDV_agent_cover_v1.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   return root;
 }
 
@@ -78,6 +80,7 @@ test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   assert.match(html, /id="auth-overlay"/);
   assert.match(html, /src="\.\/auth-local\.js"/);
   assert.match(html, /数字电路可视化Agent/);
+  assert.match(html, /\.\/assets\/DCDV_agent_cover_v1\.png/);
   assert.match(html, /onclick="switchDcdvAccount\(\)"/);
   assert.match(html, />切换账号</);
   assert.match(html, />退出登录</);
@@ -98,6 +101,10 @@ test('static server only exposes the app page and public images', async () => {
     const image = await request(port, { pathname: '/screenshots/preview.png' });
     assert.equal(image.statusCode, 200);
     assert.equal(image.headers['content-type'], 'image/png');
+
+    const loginCover = await request(port, { pathname: '/assets/DCDV_agent_cover_v1.png' });
+    assert.equal(loginCover.statusCode, 200);
+    assert.equal(loginCover.headers['content-type'], 'image/png');
 
     const authModule = await request(port, { pathname: '/auth-local.js' });
     assert.equal(authModule.statusCode, 200);

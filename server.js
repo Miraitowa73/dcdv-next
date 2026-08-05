@@ -168,7 +168,7 @@ function resolvePublicStaticPath(projectRoot, pathname) {
     return path.resolve(projectRoot, pathname.slice(1));
   }
 
-  if (pathname.startsWith('/assets/challenges/')) {
+  if (pathname.startsWith('/assets/')) {
     const ext = path.posix.extname(pathname).toLowerCase();
     if (!PUBLIC_IMAGE_EXTENSIONS.has(ext)) return null;
     return path.resolve(projectRoot, pathname.slice(1));
