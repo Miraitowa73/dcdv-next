@@ -2327,6 +2327,26 @@
             font-weight: 800;
             color: #f8fafc;
         }
+        .auth-title.auth-title-zh {
+            max-width: 11ch;
+            font-size: clamp(2.2rem, 4.4vw, 3.5rem);
+            line-height: 1.12;
+            letter-spacing: -.045em;
+        }
+        .auth-institution-logo {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 440px);
+            margin-top: 2rem;
+            opacity: .94;
+            filter: drop-shadow(0 3px 16px rgba(0, 0, 0, .38));
+        }
+        .auth-institution-logo img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
         .auth-subtitle {
             margin-top: 1.35rem;
             max-width: 29rem;
@@ -2486,6 +2506,8 @@
             .auth-brand { min-height: 260px; padding: 2rem; border-right: 0; border-bottom: 1px solid rgba(148, 163, 184, .1); }
             .auth-brand-copy { margin: 2.4rem 0 1rem; }
             .auth-title { font-size: clamp(2.35rem, 12vw, 3.4rem); }
+            .auth-title.auth-title-zh { max-width: 12ch; font-size: clamp(2rem, 9vw, 2.85rem); }
+            .auth-institution-logo { width: min(100%, 360px); margin-top: 1.4rem; }
             .auth-data-note { display: none; }
             .auth-form-side { padding: 2rem; }
             #header-title { display: none; }
@@ -2502,7 +2524,10 @@
                     <span>Digital Circuit Design Visualizer</span>
                 </div>
                 <div class="auth-brand-copy">
-                    <h1 class="auth-title">DCDV</h1>
+                    <h1 class="auth-title auth-title-zh">数字电路可视化Agent</h1>
+                    <div class="auth-institution-logo">
+                        <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
+                    </div>
                 </div>
             </section>
             <section class="auth-form-side">
@@ -2568,6 +2593,9 @@
             <div class="flex items-center gap-3">
                 <h2 id="header-title" class="text-lg font-semibold text-slate-200">Digital Circuit Design Visualizer</h2>
                 <span class="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-2.5 py-1 text-[11px] font-semibold tracking-wider text-cyan-300">DCDV NEXT · 独立开发版</span>
+            </div>
+            <div class="institution-logo">
+                <img src="https://eec.scu.edu.cn/images/logo-dgdz.png" alt="四川大学电工电子基础实验教学中心">
             </div>
             <div id="account-controls" class="relative hidden">
                 <button id="account-trigger" type="button" class="account-trigger" aria-haspopup="menu" aria-expanded="false" onclick="toggleAccountMenu(event)">
