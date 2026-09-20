@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const { createDcdvServer } = require('../server');
 
@@ -73,9 +74,10 @@ function request(port, { method = 'GET', pathname = '/', body, headers = {} } = 
   });
 }
 
-test('DCDV NEXT frontend never targets the protected legacy backend', () => {
+test('DCDV NEXT uses the approved shared API while keeping local accounts separate', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'DCDV.html'), 'utf8');
-  assert.doesNotMatch(html, /dcdv-online-beydonrfai\.cn-hangzhou\.fcapp\.run/);
+  assert.match(html, /const DCDV_FC_API_BASE = 'https:\/\/dcdv-online-beydonrfai\.cn-hangzhou\.fcapp\.run'/);
+  assert.doesNotMatch(html, /dcdv-next\.invalid/);
   assert.doesNotMatch(html, /dcdvChallengeProgressV1/);
   assert.doesNotMatch(html, /DCDV NEXT · 独立开发版/);
   assert.match(html, /id="auth-overlay"/);
@@ -93,6 +95,73 @@ test('DCDV NEXT frontend never targets the protected legacy backend', () => {
   assert.match(html, />切换账号</);
   assert.match(html, />退出登录</);
   assert.doesNotMatch(html, /登录当前设备上的 DCDV NEXT 用户/);
+});
+
+function frontendApiContext(hostname, fetch, override) {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'DCDV.html'), 'utf8');
+  const start = html.indexOf('        const DCDV_FC_API_BASE =');
+  const end = html.indexOf('        function syncCompiledDesignFromResponse', start);
+  assert.ok(start >= 0 && end > start);
+  const state = { status: null, summary: null };
+  const context = vm.createContext({
+    window: { location: { hostname }, DCDV_API_BASE: override },
+    fetch,
+    compiledDesign: { backend: { toolchain: { ok: true } }, compileOk: false },
+    setBackendStatus: (tone, message) => { state.status = { tone, message }; },
+    setCompiledSummary: (message) => { state.summary = message; },
+    updateWaveBlockingHint: () => {},
+  });
+  vm.runInContext(html.slice(start, end), context);
+  return { context, state };
+}
+
+test('Pages routes health, AI, compilation and simulation to the recorded live backend', () => {
+  const { context } = frontendApiContext('miraitowa73.github.io');
+  const record = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'deployment-record.json'), 'utf8'));
+  assert.equal(record.next.backend_url, 'https://dcdv-online-beydonrfai.cn-hangzhou.fcapp.run');
+  for (const endpoint of ['/api/health', '/api/ai/verilog/generate', '/api/ai/verilog/review', '/api/verilog/compile', '/api/verilog/simulate']) {
+    assert.equal(context.resolveDcdvApiUrl(endpoint), `${record.next.backend_url}${endpoint}`);
+  }
+});
+
+test('local development uses same-origin API and explicit overrides remain supported', () => {
+  const local = frontendApiContext('localhost');
+  assert.equal(local.context.resolveDcdvApiUrl('/api/health'), '/api/health');
+  assert.match(local.context.getBackendConnectionMessage(), /npm start/);
+  const override = frontendApiContext('localhost', undefined, 'https://backend.example.test///');
+  assert.equal(override.context.resolveDcdvApiUrl('/api/health'), 'https://backend.example.test/api/health');
+  assert.doesNotMatch(override.context.getBackendConnectionMessage(), /npm start/);
+});
+
+test('Pages network errors give cloud guidance and clear stale backend status', async () => {
+  const { context, state } = frontendApiContext('miraitowa73.github.io', async () => {
+    throw new TypeError('Failed to fetch');
+  });
+  await context.refreshBackendHealth();
+  assert.equal(state.status.tone, 'bad');
+  assert.match(state.summary, /云端后端/);
+  assert.doesNotMatch(state.summary, /npm start|localhost/);
+  assert.equal(context.compiledDesign.backend, null);
+});
+
+test('HTTP health failures are not reported as missing compilers', async () => {
+  const { context, state } = frontendApiContext('miraitowa73.github.io', async () => ({
+    ok: false, status: 502, json: async () => { throw new SyntaxError('HTML error page'); },
+  }));
+  await context.refreshBackendHealth();
+  assert.equal(state.status.tone, 'bad');
+  assert.match(state.summary, /HTTP 502/);
+  assert.equal(context.compiledDesign.backend, null);
+});
+
+test('healthy backend is connected and missing compiler is reported separately', async () => {
+  for (const ok of [true, false]) {
+    const { context, state } = frontendApiContext('miraitowa73.github.io', async () => ({
+      ok: true, json: async () => ({ ok: true, toolchain: { ok } }),
+    }));
+    await context.refreshBackendHealth();
+    assert.equal(state.status.tone, ok ? 'good' : 'warn');
+  }
 });
 
 test('static server only exposes the app page and public images', async () => {

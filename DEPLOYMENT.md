@@ -1,6 +1,19 @@
 # DCDV NEXT deployment guardrails
 
-This repository is the isolated development line for DCDV NEXT.
+This repository is the separate frontend development line for DCDV NEXT.
+
+## Active backend as of 2026-09-20
+
+The user explicitly approved sharing the existing `dcdv-online` API to restore
+Verilog compilation, simulation and AI requests. `DCDV.html` therefore uses
+`https://dcdv-online-beydonrfai.cn-hangzhou.fcapp.run` on GitHub Pages. Both
+frontends share backend capacity, rate limits and AI usage. Local development
+continues to use same-origin `/api/` requests.
+
+This is an exception to the previous backend isolation requirement only.
+Do not modify or redeploy the legacy frontend, container or FC function.
+The independent resources described below remain a future deployment plan;
+the Hangzhou console currently contains only `dcdv-online`.
 
 ## Protected legacy deployment
 
@@ -13,7 +26,7 @@ Do not push to the legacy repository, rebuild its image tag, or update its FC
 function. The local `legacy-source` remote is fetch-only and has its push URL
 disabled.
 
-## DCDV NEXT resources
+## Planned independent DCDV NEXT resources
 
 - Repository: `miraitowa73/dcdv-next`
 - GitHub Pages: `https://miraitowa73.github.io/dcdv-next/`
@@ -27,8 +40,9 @@ Before running the manual `Build isolated backend image` workflow, add the
 repository secrets `ALIYUN_ACR_USERNAME` and `ALIYUN_ACR_PASSWORD`. These must
 belong to the new `dcdv-next` ACR workflow and must never be committed.
 
-The frontend API base in `DCDV.html` must contain only the new FC default
-domain. Never use the legacy backend URL in a DCDV NEXT release.
+When an independent backend is deployed, verify its health and CORS support,
+then update `DCDV.html`, `deployment-record.json` and the API routing tests
+together. Until then, retain the explicitly approved shared backend above.
 
 ## Local accounts and progress
 
@@ -60,7 +74,16 @@ DCDV_VERILOG_RATE_LIMIT=60
 DCDV_MAX_VERILOG_JOBS=1
 ```
 
-## Release verification
+## Current shared-backend release verification
+
+1. Confirm the recorded backend `/api/health` returns `ok: true` and
+   `toolchain.ok: true` (its service name is `dcdv-local-backend`).
+2. Confirm health and POST preflight responses allow the origin
+   `https://miraitowa73.github.io`.
+3. Check Verilog compilation and simulation using the NEXT frontend.
+4. Keep the legacy deployment unchanged.
+
+## Future independent-backend release verification
 
 1. Confirm `/api/health` returns `deployment: dcdv-next-fc-next-1`.
 2. Confirm the Pages root redirects to `DCDV.html` and shows the `DCDV NEXT`

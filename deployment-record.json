@@ -11,7 +11,11 @@
     "repository": "https://github.com/miraitowa73/dcdv-next",
     "branch": "main",
     "frontend_url": "https://miraitowa73.github.io/dcdv-next/",
-    "backend_url": null,
+    "backend_url": "https://dcdv-online-beydonrfai.cn-hangzhou.fcapp.run",
+    "backend_mode": "shared-with-legacy",
+    "backend_approved_on": "2026-09-20",
+    "active_fc_function": "dcdv-online",
+    "isolated_backend_status": "planned-not-deployed",
     "acr_image": "crpi-a6e6wn4ngz2b118w.cn-hangzhou.personal.cr.aliyuncs.com/dcdv/dcdv-next:fc-next-1",
     "fc_service": "dcdv-fc-next",
     "fc_function": "dcdv-next"

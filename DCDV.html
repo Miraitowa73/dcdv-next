@@ -4573,9 +4573,9 @@
             } catch (error) {
                 challengeState.compileResults[key] = {
                     ok: false,
-                    message: error.message || '无法连接本地编译后端。'
+                    message: error.message || getBackendConnectionMessage()
                 };
-                showToast('本地后端不可用', 'error');
+                showToast('后端不可用', 'error');
             }
             saveChallengeProgress();
             renderChallengeTab();
@@ -5100,7 +5100,7 @@
                     if (ok) challengeState.completed[key] = true;
                 }
             } catch (error) {
-                challengeState.results[key] = { ok: false, message: error.message || '无法连接本地后端。' };
+                challengeState.results[key] = { ok: false, message: error.message || getBackendConnectionMessage() };
             }
             saveChallengeProgress();
             renderChallengeTab();
@@ -5336,9 +5336,8 @@
             updateWaveBlockingHint();
         }
 
-        // Fail closed until the isolated DCDV NEXT FC domain is provisioned.
-        // Never point this development edition at the protected legacy backend.
-        const DCDV_FC_API_BASE = 'https://dcdv-next.invalid';
+        // Shared API approved on 2026-09-20; the legacy deployment itself is unchanged.
+        const DCDV_FC_API_BASE = 'https://dcdv-online-beydonrfai.cn-hangzhou.fcapp.run';
 
         function getDcdvApiBase() {
             const override = String(window.DCDV_API_BASE || '').trim().replace(/\/+$/, '');
@@ -5353,13 +5352,26 @@
             return `${getDcdvApiBase()}${endpoint}`;
         }
 
+        function getBackendConnectionMessage() {
+            const host = window.location.hostname.toLowerCase();
+            const isLocal = !getDcdvApiBase() && ['localhost', '127.0.0.1', '[::1]'].includes(host);
+            return isLocal
+                ? '无法连接本地后端，请通过 npm start 启动服务，再从 http://localhost:3030 打开页面。'
+                : '无法连接云端后端，请稍后重试；若持续失败，请检查后端服务地址、运行状态和跨域配置。';
+        }
+
         async function callLocalApi(endpoint, options = {}) {
             const { method = 'GET', body } = options;
-            const response = await fetch(resolveDcdvApiUrl(endpoint), {
-                method,
-                headers: body ? { 'Content-Type': 'application/json' } : undefined,
-                body: body ? JSON.stringify(body) : undefined
-            });
+            let response;
+            try {
+                response = await fetch(resolveDcdvApiUrl(endpoint), {
+                    method,
+                    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+                    body: body ? JSON.stringify(body) : undefined
+                });
+            } catch (error) {
+                throw new Error(getBackendConnectionMessage());
+            }
             let data = null;
             try {
                 data = await response.json();
@@ -5375,6 +5387,9 @@
         async function refreshBackendHealth() {
             try {
                 const data = await callLocalApi('/api/health');
+                if (!data?.ok || !data?.toolchain) {
+                    throw new Error(`后端健康检查失败：${(data?.errors || ['响应格式不正确']).join('；')}`);
+                }
                 compiledDesign.backend = data;
                 if (data?.toolchain?.ok) {
                     const version = data.toolchain.iverilog?.version || 'iverilog / vvp 已就绪';
@@ -5383,11 +5398,12 @@
                 } else {
                     const detail = data?.toolchain?.iverilog?.detail || '未检测到可用的 iverilog / vvp';
                     setBackendStatus('warn', detail);
-                    setCompiledSummary('本地服务已连接，但编译器不可用。请先安装 iverilog / vvp。', 'text-amber-300');
+                    setCompiledSummary('后端已连接，但编译器不可用。请在后端安装 iverilog / vvp。', 'text-amber-300');
                 }
             } catch (error) {
-                setBackendStatus('bad', '无法连接本地后端');
-                setCompiledSummary('请通过 `npm start` 启动本地后端，再从 localhost 打开 DCDV。', 'text-red-300');
+                compiledDesign.backend = null;
+                setBackendStatus('bad', '后端连接异常');
+                setCompiledSummary(error.message || getBackendConnectionMessage(), 'text-red-300');
             } finally {
                 updateWaveBlockingHint();
             }
@@ -5457,7 +5473,7 @@
                 button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 mr-2 animate-spin"></i> 检查中';
                 lucide.createIcons();
             }
-            setCompileConsoleEntries([{ tone: 'cyan', text: '正在调用本地 iverilog 做真实编译检查，请稍候...' }]);
+            setCompileConsoleEntries([{ tone: 'cyan', text: '正在调用后端 iverilog 做真实编译检查，请稍候...' }]);
 
             try {
                 await refreshBackendHealth();
@@ -5471,9 +5487,9 @@
                 syncCompiledDesignFromResponse(result);
                 showToast(result.ok ? '真实编译检查完成' : '编译失败', result.ok ? 'success' : 'error');
             } catch (error) {
-                setCompileConsoleEntries([{ tone: 'red', text: error.message || '无法连接本地编译后端。' }]);
-                setCompiledSummary('无法连接本地编译后端，请确认 `npm start` 正在运行。', 'text-red-300');
-                showToast('本地后端不可用', 'error');
+                setCompileConsoleEntries([{ tone: 'red', text: error.message || getBackendConnectionMessage() }]);
+                setCompiledSummary(error.message || getBackendConnectionMessage(), 'text-red-300');
+                showToast('后端不可用', 'error');
             } finally {
                 if (button) {
                     button.disabled = false;
@@ -9299,9 +9315,9 @@
                 setWaveRefreshStatus('真实仿真完成，输出已回填', 'text-xs text-emerald-300');
                 if (!automatic) showToast('真实仿真完成', 'success');
             } catch (error) {
-                appendCompileConsoleEntry(error.message || '真实仿真失败：无法连接本地后端。', 'red');
+                appendCompileConsoleEntry(error.message || getBackendConnectionMessage(), 'red');
                 setWaveRefreshStatus('真实仿真失败：后端不可用', 'text-xs text-red-300');
-                if (!automatic) showToast('本地仿真失败', 'error');
+                if (!automatic) showToast('仿真失败', 'error');
             } finally {
                 waveBackendSimulationInFlight = false;
                 if (button) {
