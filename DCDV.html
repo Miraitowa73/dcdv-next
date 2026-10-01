@@ -2746,7 +2746,7 @@
                                     <button id="diagram-help-toggle" type="button" class="diagram-help-toggle text-[11px]" onclick="toggleDiagramDetailedHelp()">查看详细操作</button>
                                 </div>
                                 <div id="diagram-help-detail" class="hidden max-w-3xl rounded-2xl border border-slate-700 bg-slate-900/90 backdrop-blur px-3 py-2 text-[11px] text-slate-300 shadow">
-                                    左键拖拽器件主体。拖动空白区域可平移画布，滚轮可缩放。单击引脚(小圆点)进行连线，也可在拉出虚线后<strong>直接点击器件主体</strong>自动寻路。<strong>双击多路选择器 / 译码器 / 比较器 / 分频器 / 计数器可配置参数</strong>。选中按 Delete 键可删除。
+                                    左键拖拽器件主体。拖动空白区域可平移画布，滚轮可缩放。单击引脚(小圆点)进行连线，也可在拉出虚线后<strong>直接点击器件主体</strong>自动寻路。<strong>双击与门 / 或门可修改输入引脚数量（2–8 个）</strong>；双击多路选择器 / 译码器 / 比较器 / 分频器 / 计数器可配置参数。选中按 Delete 键可删除。
                                 </div>
                             </div>
                         </div>
@@ -6398,6 +6398,14 @@
 
         function getGateSpec(comp) {
             if (!comp) return null;
+            if (isVariableInputGate(comp)) {
+                const count = getGateInputCount(comp);
+                const pins = Array.from({ length: count }, (_, i) => ({
+                    id: String.fromCharCode(65 + i), x: 0, y: (i + 0.5) / count, dir: 'in'
+                }));
+                pins.push({ id: 'Y', x: 1, y: 0.5, dir: 'out' });
+                return { w: 60, h: count * 20, pins };
+            }
             if (comp.type === 'MUX') {
                 let selBits = comp.params?.selBits || 1;
                 let dataBits = 1 << selBits;
@@ -6456,7 +6464,42 @@
         }
 
         function isConfigurableComponent(comp) {
-            return !!comp && ['MUX', 'DEC', 'COMP', 'DIV', 'COUNTER2'].includes(comp.type);
+            return !!comp && (isVariableInputGate(comp) || ['MUX', 'DEC', 'COMP', 'DIV', 'COUNTER2'].includes(comp.type));
+        }
+
+        function isVariableInputGate(comp) {
+            return !!comp && ['AND', 'OR'].includes(comp.type);
+        }
+
+        function getGateInputCount(comp) {
+            const count = Number(comp.params?.inputCount ?? 2);
+            return Number.isInteger(count) && count >= 2 && count <= 8 ? count : 2;
+        }
+
+        function evaluateVariableInputGate(comp, nets) {
+            const values = getGateSpec(comp).pins.filter(pin => pin.dir === 'in')
+                .map(pin => !!nets[`${comp.id}_${pin.id}`]);
+            return (comp.type === 'AND' ? values.every(Boolean) : values.some(Boolean)) ? 1 : 0;
+        }
+
+        function setGateInputCount(comp, count) {
+            if (!isVariableInputGate(comp) || !Number.isInteger(count) || count < 2 || count > 8) return false;
+            if (getGateInputCount(comp) === count) return false;
+            comp.params = { ...comp.params, inputCount: count };
+            const validPins = new Set(getGateSpec(comp).pins.map(pin => pin.id));
+            const isValidEndpoint = endpoint => endpoint.compId !== comp.id || validPins.has(endpoint.pinId);
+            schState.wires = schState.wires.filter(wire => isValidEndpoint(wire.from) && isValidEndpoint(wire.to));
+            if (schState.pendingPin && !isValidEndpoint(schState.pendingPin)) {
+                schState.pendingPin = null;
+                clearSchematicPreview();
+            }
+            if (schState.selectedWire && !schState.wires.some(wire => wire.id === schState.selectedWire)) {
+                schState.selectedWire = null;
+            }
+            invalidateCompiledDesign('逻辑门输入数量已修改，请重新编译 HDL。');
+            persistChallengeSchematicDraft();
+            autoSyncHdlMode();
+            return true;
         }
 
         function isRenameableSchematicComponent(comp) {
@@ -6657,7 +6700,13 @@
             document.getElementById('param-title').innerText = `配置 ${comp.type} 参数`;
             
             let html = '';
-            if (comp.type === 'MUX') {
+            if (isVariableInputGate(comp)) {
+                document.getElementById('param-title').innerText = `配置${comp.type === 'AND' ? '与门' : '或门'}输入`;
+                html = `<label class="flex flex-col gap-1">输入引脚数量
+                            <input type="number" id="param-inputCount" value="${getGateInputCount(comp)}" min="2" max="8" step="1" class="bg-slate-950 border border-slate-700 rounded p-2 focus:border-cyan-500 text-cyan-300 font-mono outline-none" aria-describedby="gate-input-help">
+                        </label>
+                        <p id="gate-input-help" class="text-xs text-slate-400 mt-1">支持 2–8 个输入，按 A–H 从上到下排列。减少数量时，仅移除被删引脚上的连线；其余连线保留。</p>`;
+            } else if (comp.type === 'MUX') {
                 html = `<label class="flex flex-col gap-1">选择信号位宽 (Select Bits): 
                             <input type="number" id="param-selBits" value="${comp.params.selBits}" min="1" max="4" class="bg-slate-950 border border-slate-700 rounded p-2 focus:border-cyan-500 text-cyan-300 font-mono outline-none">
                         </label>
@@ -6705,6 +6754,23 @@
         function saveParamModal() {
             if (!currentConfigComp) return;
             let c = currentConfigComp;
+
+            if (isVariableInputGate(c)) {
+                const input = document.getElementById('param-inputCount');
+                const count = Number(input.value);
+                if (!Number.isInteger(count) || count < 2 || count > 8) {
+                    showToast('请输入 2–8 之间的整数', 'error');
+                    input.focus();
+                    return;
+                }
+                const changed = setGateInputCount(c, count);
+                closeParamModal();
+                if (changed) {
+                    renderSch();
+                    showToast(`输入引脚已改为 ${count} 个`, 'success');
+                }
+                return;
+            }
 
             // ===== 原理图页器件 =====
             if (c.type === 'MUX') c.params.selBits = Math.max(1, Math.min(4, parseInt(document.getElementById('param-selBits').value) || 1));
@@ -6820,6 +6886,8 @@
                 el.dataset.id = String(comp.id);
                 if (isRenameableSchematicComponent(comp)) {
                     el.title = '双击修改端口名称';
+                } else if (isVariableInputGate(comp)) {
+                    el.title = `${comp.type === 'AND' ? '与门' : '或门'} · ${getGateInputCount(comp)} 个输入，双击修改输入引脚数量`;
                 } else if (isLocked) {
                     el.title = '固定端口，可连线';
                 }
@@ -7329,8 +7397,7 @@
 
                 schState.components.forEach(c => {
                     let A = nets[`${c.id}_A`] || 0, B = nets[`${c.id}_B`] || 0;
-                    if(c.type==='AND') nets[`${c.id}_Y`] = A & B;
-                    if(c.type==='OR') nets[`${c.id}_Y`] = A | B;
+                    if (isVariableInputGate(c)) nets[`${c.id}_Y`] = evaluateVariableInputGate(c, nets);
                     if(c.type==='NOT') nets[`${c.id}_Y`] = A ? 0 : 1;
                     if(c.type==='XOR') nets[`${c.id}_Y`] = A ^ B;
                     if(c.type==='XNOR') nets[`${c.id}_Y`] = (A ^ B) ? 0 : 1;
@@ -8178,12 +8245,9 @@
                 return resolveSchExpr(srcCompId, srcPinId, memo, netCtx);
             };
 
-            if (comp.type === 'AND' && pinId === 'Y') {
-                memo[key] = `(${getInputExpr('A')} & ${getInputExpr('B')})`;
-                return memo[key];
-            }
-            if (comp.type === 'OR' && pinId === 'Y') {
-                memo[key] = `(${getInputExpr('A')} | ${getInputExpr('B')})`;
+            if (isVariableInputGate(comp) && pinId === 'Y') {
+                const operator = comp.type === 'AND' ? ' & ' : ' | ';
+                memo[key] = `(${getGateSpec(comp).pins.filter(pin => pin.dir === 'in').map(pin => getInputExpr(pin.id)).join(operator)})`;
                 return memo[key];
             }
             if (comp.type === 'NOT' && pinId === 'Y') {
@@ -9014,8 +9078,7 @@
                             if (outNode && inNode) { nets[`${inNode.compId}_${inNode.pinId}`] = nets[`${outNode.compId}_${outNode.pinId}`] || 0; }
                         });
                         schState.components.forEach(c => {
-                            if (c.type === 'AND') nets[`${c.id}_Y`] = (nets[`${c.id}_A`] & nets[`${c.id}_B`]) ? 1 : 0;
-                            if (c.type === 'OR') nets[`${c.id}_Y`] = (nets[`${c.id}_A`] | nets[`${c.id}_B`]) ? 1 : 0;
+                            if (isVariableInputGate(c)) nets[`${c.id}_Y`] = evaluateVariableInputGate(c, nets);
                             if (c.type === 'NOT') nets[`${c.id}_Y`] = (nets[`${c.id}_A`] ? 0 : 1);
                             if (c.type === 'XOR') nets[`${c.id}_Y`] = (nets[`${c.id}_A`] ^ nets[`${c.id}_B`]) ? 1 : 0;
                             if (c.type === 'XNOR') nets[`${c.id}_Y`] = ((nets[`${c.id}_A`] ^ nets[`${c.id}_B`]) ? 0 : 1);
