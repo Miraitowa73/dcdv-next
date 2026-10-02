@@ -3992,7 +3992,7 @@
             const y = 150 + ((challengeFsmData.idSeed - 1) % 2) * 130;
             challengeFsmData.states.push({
                 id: challengeFsmData.idSeed,
-                label: `S${challengeFsmData.idSeed}`,
+                label: `S${challengeFsmData.idSeed - 1}`,
                 x: Math.max(80, x),
                 y
             });
@@ -7653,7 +7653,7 @@
             clearFsmPresetMarker();
             fsmData.idSeed++;
             fsmData.states.push({
-                id: fsmData.idSeed, label: `S${fsmData.idSeed}`,
+                id: fsmData.idSeed, label: `S${fsmData.idSeed - 1}`,
                 x: 300 + (fsmData.idSeed * 20) % 150, y: 200 + (fsmData.idSeed * 20) % 100
             });
             renderFsm();
