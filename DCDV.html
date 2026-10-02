@@ -2189,6 +2189,53 @@
             box-shadow: 0 24px 60px rgba(2,6,23,0.42), inset 0 1px 0 rgba(255,255,255,0.05);
             animation: modal-scale-in .22s ease;
         }
+        .fpga-editor-overlay { position: fixed; inset: 0; z-index: 110; display: grid; place-items: center; background: rgba(2,6,23,.8); padding: 24px; }
+        .fpga-editor-overlay[hidden] { display: none; }
+        .fpga-editor-dialog { width: min(1440px, 100%); height: min(900px, 92dvh); display: flex; flex-direction: column; min-height: 0; background: #111827; border: 1px solid #334155; border-radius: 12px; box-shadow: 0 28px 80px #0008; color: #e2e8f0; overflow: hidden; }
+        .fpga-editor-dialog.is-maximized { width: 100%; height: calc(100dvh - 48px); }
+        .fpga-editor-header, .fpga-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 24px; flex-shrink: 0; }
+        .fpga-editor-header { border-bottom: 1px solid #334155; }
+        .fpga-editor-header h2 { font-size: 19px; font-weight: 600; margin: 0 0 5px; }
+        .fpga-editor-header p { color: #94a3b8; font-size: 13px; margin: 0; }
+        .fpga-editor-tools { display: flex; align-items: center; gap: 8px; }
+        .fpga-editor-dialog button { min-height: 40px; border-radius: 6px; padding: 8px 14px; border: 1px solid #475569; background: #1e293b; color: #e2e8f0; font-size: 13px; cursor: pointer; }
+        .fpga-editor-dialog button:hover { background: #334155; }
+        .fpga-editor-dialog button:focus-visible, #fpga-hdl-source:focus-visible { outline: 2px solid #22d3ee; outline-offset: -2px; }
+        .fpga-editor-dialog button:disabled { opacity: .45; cursor: not-allowed; }
+        .fpga-editor-dialog .fpga-apply { background: #0e7490; border-color: #0891b2; color: #fff; }
+        .fpga-editor-dialog .fpga-apply:hover { background: #155e75; }
+        .fpga-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) 260px; flex: 1; min-height: 0; }
+        .fpga-source-pane { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: #080f1d; }
+        .fpga-file-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #263244; color: #cbd5e1; font: 12px Consolas, monospace; }
+        .fpga-file-bar span:last-child { color: #67e8f9; }
+        .fpga-code-area { display: flex; min-height: 0; flex: 1; --fpga-code-size: 14px; }
+        #fpga-hdl-lines, #fpga-hdl-source { margin: 0; padding: 18px 16px; font: var(--fpga-code-size)/1.7 Consolas, 'Cascadia Code', 'Courier New', monospace; tab-size: 4; border: 0; border-radius: 0; white-space: pre; }
+        #fpga-hdl-lines { width: 62px; flex-shrink: 0; text-align: right; color: #64748b; overflow: hidden; user-select: none; border-right: 1px solid #1e293b; background: #0d1524; }
+        #fpga-hdl-source { display: block; width: 100%; min-width: 0; flex: 1; resize: none; background: transparent; color: #dbeafe; caret-color: #22d3ee; outline: none; overflow: auto; }
+        .fpga-code-status { display: flex; justify-content: space-between; gap: 10px; padding: 8px 16px; color: #94a3b8; font-size: 12px; border-top: 1px solid #263244; }
+        .fpga-editor-reference { padding: 20px; overflow-y: auto; border-left: 1px solid #334155; font-size: 13px; }
+        .fpga-editor-reference h3 { font-size: 14px; font-weight: 600; margin: 0 0 16px; }
+        .fpga-editor-reference dl { margin: 0; }
+        .fpga-editor-reference dt { color: #67e8f9; font: 12px Consolas, monospace; margin-top: 20px; }
+        .fpga-editor-reference dd { margin: 7px 0 0; color: #cbd5e1; line-height: 1.8; }
+        .fpga-editor-reference p { margin: 20px 0 0; color: #94a3b8; line-height: 1.7; font-size: 12px; }
+        #fpga-hdl-feedback { border-top: 1px solid #334155; padding: 12px 24px; font-size: 13px; color: #a5f3fc; background: #0d1b2a; flex-shrink: 0; }
+        #fpga-hdl-feedback[data-error="true"] { color: #fecaca; background: #341a23; }
+        .fpga-editor-footer { padding: 14px 24px; border-top: 1px solid #334155; }
+        .fpga-editor-footer p { color: #94a3b8; font-size: 12px; margin: 0; }
+        @media (max-width: 1000px) {
+            .fpga-editor-overlay { padding: 12px; }
+            .fpga-editor-dialog, .fpga-editor-dialog.is-maximized { height: calc(100dvh - 24px); }
+            .fpga-editor-body { grid-template-columns: 1fr; }
+            .fpga-editor-reference { display: none; }
+            .fpga-editor-header, .fpga-editor-footer { padding: 12px 16px; gap: 12px; }
+        }
+        @media (max-width: 600px) {
+            .fpga-editor-header { align-items: flex-start; flex-direction: column; }
+            .fpga-editor-footer { flex-wrap: wrap; }
+            .fpga-editor-footer p, .fpga-code-status span:last-child { display: none; }
+            #fpga-hdl-feedback { padding: 10px 16px; }
+        }
         #param-content label {
             display: flex;
             flex-direction: column;
@@ -3134,6 +3181,38 @@
         </div>
     </div>
 
+    <div id="fpga-hdl-modal" class="fpga-editor-overlay" hidden onkeydown="handleFpgaEditorKey(event)">
+        <section class="fpga-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="fpga-hdl-title" aria-describedby="fpga-hdl-subtitle">
+            <header class="fpga-editor-header">
+                <div><h2 id="fpga-hdl-title">FPGA · HDL 编辑器</h2><p id="fpga-hdl-subtitle"></p></div>
+                <div class="fpga-editor-tools">
+                    <button type="button" onclick="resizeFpgaEditorFont(-1)" aria-label="缩小代码字号">A−</button>
+                    <button type="button" onclick="resizeFpgaEditorFont(1)" aria-label="放大代码字号">A+</button>
+                    <button id="fpga-maximize" type="button" onclick="toggleFpgaEditorSize()" aria-pressed="false">最大化</button>
+                </div>
+            </header>
+            <div class="fpga-editor-body">
+                <div class="fpga-source-pane">
+                    <div class="fpga-file-bar"><span id="fpga-hdl-file">fpga.v</span><span id="fpga-hdl-dirty">已保存</span></div>
+                    <div class="fpga-code-area">
+                        <pre id="fpga-hdl-lines" aria-hidden="true">1</pre>
+                        <textarea id="fpga-hdl-source" aria-label="FPGA Verilog 源代码" aria-describedby="fpga-hdl-feedback" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off" oninput="updateFpgaEditorStatus()" onscroll="syncFpgaEditorScroll()" onclick="updateFpgaEditorCursor()" onkeyup="updateFpgaEditorCursor()"></textarea>
+                    </div>
+                    <div class="fpga-code-status"><span id="fpga-hdl-cursor">Ln 1, Col 1</span><span>Verilog · UTF-8 · Tab 缩进 · Esc 离开代码区</span></div>
+                </div>
+                <aside class="fpga-editor-reference" id="fpga-hdl-reference"></aside>
+            </div>
+            <div id="fpga-hdl-feedback" role="status" aria-live="polite"></div>
+            <footer class="fpga-editor-footer">
+                <p id="fpga-hdl-save-hint">Ctrl / ⌘ + S 保存并应用</p>
+                <div class="fpga-editor-tools">
+                    <button id="fpga-dds-upgrade" type="button" hidden onclick="upgradeDdsEditorTemplate()">使用可配置模板</button>
+                    <button id="fpga-hdl-cancel" type="button" onclick="closeFpgaHdlEditor()">取消</button>
+                    <button id="fpga-hdl-apply" type="button" class="fpga-apply" onclick="saveFpgaHdlEditor()">保存并应用</button>
+                </div>
+            </footer>
+        </section>
+    </div>
     <div id="toast-container"></div>
     <input id="mixed-project-file-input" type="file" accept=".json,.dcdv.json,application/json" class="hidden" onchange="handleMixedProjectFileChange(event)">
     <input id="progress-import-input" type="file" accept=".json,application/json" class="hidden" onchange="handleProgressImport(event)">
@@ -10854,214 +10933,135 @@
         }
 
         function generateDdsSignalGeneratorPresetHdl() {
-            return `// Based on the STEP training board DDS example
-// public mirror: https://wiki.stepfpga.com/contest_board_dds
-// This preset packages the DDS waveform core into a single FPGA module and adds PWM_Out.
-module dds_signal_generator_top (
-    input  wire        clk_in,
-    input  wire        sys_rst_n,
-    input  wire        key_a,
-    input  wire        key_b,
-    input  wire        key_ok,
-    output wire [9:0]  DA,
-    output wire        PWM_Out,
-    output wire        dac_clk,
-    output wire        oled_clk,
-    output wire        oled_dat,
-    output wire        oled_rst,
-    output wire        oled_dcn,
-    output wire        oled_csn
+            const sineRows = Array.from({ length: 64 }, (_, i) =>
+                `            6'd${i}: sine_sample = 10'd${Math.round(511.5 + 511.5 * Math.sin(i * Math.PI / 32))};`).join('\n');
+            return `// DDS 信号发生器 · 修改以下四个参数，保存并应用后查看示波器。
+// WAVE_TYPE: 0=正弦波  1=锯齿波  2=三角波  3=方波
+// FREQUENCY_HZ: 1–1000 Hz；AMPLITUDE_MV: 峰值幅度；OFFSET_MV: 直流偏置。
+// 输出范围 0–5000 mV，偏置 ± 幅值必须位于此范围内。
+module dds_signal_generator_top #(
+    parameter integer WAVE_TYPE = 0,
+    parameter integer FREQUENCY_HZ = 120,
+    parameter integer AMPLITUDE_MV = 2300,
+    parameter integer OFFSET_MV = 2500
+) (
+    input wire clk_in,
+    input wire sys_rst_n,
+    output wire [9:0] DA,
+    output wire PWM_Out,
+    output wire dac_clk
 );
-
-    wire [9:0] onecycle_amp;
-    wire [1:0] wave_select;
-    wire [26:0] wave_freq;
-    reg  [9:0] pwm_counter;
-
-    assign oled_clk = 1'b0;
-    assign oled_dat = 1'b0;
-    assign oled_rst = 1'b1;
-    assign oled_dcn = 1'b1;
-    assign oled_csn = 1'b1;
-    assign dac_clk  = clk_in;
-
-    dds u_dds (
-        .sys_clk      (clk_in),
-        .sys_rst_n    (sys_rst_n),
-        .L_pulse      (key_a),
-        .R_pulse      (key_b),
-        .button_state (key_ok),
-        .wave         (wave_select),
-        .WaveFreq     (wave_freq),
-        .onecycle_amp (onecycle_amp)
-    );
+    // 案例时钟 2.4576 MHz，24 位相位累加器，10 位 DAC / PWM。
+    localparam integer CLOCK_HZ = 2457600;
+    localparam [23:0] PHASE_STEP = (64'd16777216 * FREQUENCY_HZ + CLOCK_HZ / 2) / CLOCK_HZ;
+    reg [23:0] phase_accumulator;
+    reg [9:0] pwm_counter;
+    wire [7:0] address = phase_accumulator[23:16];
+    reg [9:0] sine_sample;
+    reg [9:0] wave_sample;
+    integer voltage_mv;
+    integer dac_code;
 
     always @(posedge clk_in or negedge sys_rst_n) begin
-        if (!sys_rst_n)
-            pwm_counter <= 10'd0;
-        else
-            pwm_counter <= pwm_counter + 10'd1;
-    end
-
-    assign DA      = onecycle_amp;
-    assign PWM_Out = (pwm_counter < onecycle_amp);
-
-endmodule
-
-module dds (
-    input  wire        sys_clk,
-    input  wire        sys_rst_n,
-    input  wire        L_pulse,
-    input  wire        R_pulse,
-    input  wire        button_state,
-    output reg  [1:0]  wave,
-    output reg  [26:0] WaveFreq,
-    output wire [9:0]  onecycle_amp
-);
-
-    reg  [7:0]  phase_accumulator;
-    reg  [23:0] f_word;
-    wire [9:0]  sine_table_out;
-    wire [9:0]  sawtooth_table_out;
-    wire [9:0]  triangle_table_out;
-    wire [9:0]  square_table_out;
-
-    always @(posedge sys_clk or negedge sys_rst_n) begin
         if (!sys_rst_n) begin
-            f_word <= 24'h22222;
-            wave   <= 2'd0; // default to sine table output
+            phase_accumulator <= 24'd0;
+            pwm_counter <= 10'd0;
         end else begin
-            if (button_state)
-                wave <= wave + 2'd1;
-            if (L_pulse)
-                f_word <= f_word - 24'h04000;
-            else if (R_pulse)
-                f_word <= f_word + 24'h04000;
+            phase_accumulator <= phase_accumulator + PHASE_STEP;
+            pwm_counter <= pwm_counter + 10'd1;
         end
     end
 
-    always @(posedge sys_clk or negedge sys_rst_n) begin
-        if (!sys_rst_n)
-            phase_accumulator <= 8'd0;
-        else
-            phase_accumulator <= phase_accumulator + f_word[23:16];
-    end
-
     always @(*) begin
-        WaveFreq = 27'd1000000;
-    end
-
-    lookup_tables u_lookup_tables (
-        .address            (phase_accumulator),
-        .sine_table_out     (sine_table_out),
-        .sawtooth_table_out (sawtooth_table_out),
-        .triangle_table_out (triangle_table_out),
-        .square_table_out   (square_table_out)
-    );
-
-    // wave = 2'd0 selects the sine lookup table by default.
-    assign onecycle_amp = (wave == 2'd0) ? sine_table_out :
-                          (wave == 2'd1) ? sawtooth_table_out :
-                          (wave == 2'd2) ? triangle_table_out :
-                                          square_table_out;
-
-endmodule
-
-module lookup_tables (
-    input  wire [7:0] address,
-    output wire [9:0] sine_table_out,
-    output wire [9:0] sawtooth_table_out,
-    output wire [9:0] triangle_table_out,
-    output wire [9:0] square_table_out
-);
-
-    sin_table u_sin_table (
-        .address (address[7:2]),
-        .out     (sine_table_out)
-    );
-
-    assign sawtooth_table_out = {2'b00, address};
-    assign triangle_table_out = address[7] ? {2'b00, ~address} : {2'b00, address};
-    assign square_table_out   = address[7] ? 10'd1023 : 10'd0;
-
-endmodule
-
-module sin_table (
-    input  wire [5:0] address,
-    output reg  [9:0] out
-);
-
-    always @(*) begin
-        case(address)
-            6'd0  : out = 10'd512;
-            6'd1  : out = 10'd537;
-            6'd2  : out = 10'd562;
-            6'd3  : out = 10'd587;
-            6'd4  : out = 10'd611;
-            6'd5  : out = 10'd636;
-            6'd6  : out = 10'd660;
-            6'd7  : out = 10'd684;
-            6'd8  : out = 10'd707;
-            6'd9  : out = 10'd730;
-            6'd10 : out = 10'd752;
-            6'd11 : out = 10'd774;
-            6'd12 : out = 10'd795;
-            6'd13 : out = 10'd815;
-            6'd14 : out = 10'd834;
-            6'd15 : out = 10'd852;
-            6'd16 : out = 10'd869;
-            6'd17 : out = 10'd886;
-            6'd18 : out = 10'd900;
-            6'd19 : out = 10'd915;
-            6'd20 : out = 10'd927;
-            6'd21 : out = 10'd938;
-            6'd22 : out = 10'd949;
-            6'd23 : out = 10'd958;
-            6'd24 : out = 10'd966;
-            6'd25 : out = 10'd973;
-            6'd26 : out = 10'd979;
-            6'd27 : out = 10'd984;
-            6'd28 : out = 10'd988;
-            6'd29 : out = 10'd991;
-            6'd30 : out = 10'd993;
-            6'd31 : out = 10'd994;
-            6'd32 : out = 10'd994;
-            6'd33 : out = 10'd993;
-            6'd34 : out = 10'd991;
-            6'd35 : out = 10'd988;
-            6'd36 : out = 10'd984;
-            6'd37 : out = 10'd979;
-            6'd38 : out = 10'd973;
-            6'd39 : out = 10'd966;
-            6'd40 : out = 10'd958;
-            6'd41 : out = 10'd949;
-            6'd42 : out = 10'd938;
-            6'd43 : out = 10'd927;
-            6'd44 : out = 10'd915;
-            6'd45 : out = 10'd900;
-            6'd46 : out = 10'd886;
-            6'd47 : out = 10'd869;
-            6'd48 : out = 10'd852;
-            6'd49 : out = 10'd834;
-            6'd50 : out = 10'd815;
-            6'd51 : out = 10'd795;
-            6'd52 : out = 10'd774;
-            6'd53 : out = 10'd752;
-            6'd54 : out = 10'd730;
-            6'd55 : out = 10'd707;
-            6'd56 : out = 10'd684;
-            6'd57 : out = 10'd660;
-            6'd58 : out = 10'd636;
-            6'd59 : out = 10'd611;
-            6'd60 : out = 10'd587;
-            6'd61 : out = 10'd562;
-            6'd62 : out = 10'd537;
-            6'd63 : out = 10'd512;
-            default: out = 10'd512;
+        case (address[7:2])
+${sineRows}
+            default: sine_sample = 10'd512;
         endcase
+        case (WAVE_TYPE)
+            0: wave_sample = sine_sample;
+            1: wave_sample = {address, 2'b00};
+            2: wave_sample = address[7] ? {~address[6:0], 3'b000} : {address[6:0], 3'b000};
+            3: wave_sample = address[7] ? 10'd0 : 10'd1023;
+            default: wave_sample = 10'd512;
+        endcase
+        // 有符号整数运算：转换为毫伏，再量化成 DAC 码。
+        voltage_mv = wave_sample;
+        voltage_mv = OFFSET_MV + ((2 * voltage_mv - 1023) * AMPLITUDE_MV) / 1023;
+        dac_code = (voltage_mv * 1023 + 2500) / 5000;
+        if (dac_code < 0) dac_code = 0;
+        if (dac_code > 1023) dac_code = 1023;
     end
-
+    assign DA = dac_code[9:0];
+    assign PWM_Out = pwm_counter < DA;
+    assign dac_clk = clk_in;
 endmodule`;
+        }
+
+        function stripDdsComments(code) {
+            return String(code).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n\r]*/g, '');
+        }
+
+        function parseDdsHdlConfig(code) {
+            const clean = stripDdsComments(code);
+            const config = {};
+            const names = ['WAVE_TYPE', 'FREQUENCY_HZ', 'AMPLITUDE_MV', 'OFFSET_MV'];
+            const normalize = text => stripDdsComments(text).replace(
+                /\bparameter\s+integer\s+(WAVE_TYPE|FREQUENCY_HZ|AMPLITUDE_MV|OFFSET_MV)\s*=\s*([^,\n\r)]+)/g,
+                'parameter integer $1=VALUE').replace(/\s+/g, '');
+            for (const name of names) {
+                const matches = [...clean.matchAll(new RegExp('\\bparameter\\s+integer\\s+' + name + '\\s*=\\s*([^,\\n\\r)]+)', 'g'))];
+                if (matches.length !== 1) throw new Error(`请保留一个 parameter integer ${name} 参数。`);
+                const raw = matches[0][1].trim();
+                let value;
+                if (/^\d[\d_]*$/.test(raw)) value = Number(raw.replace(/_/g, ''));
+                else {
+                    const literal = raw.match(/^(\d+)'([dDhHbBoO])([0-9a-fA-F_]+)$/);
+                    if (!literal) throw new Error(`${name} 请使用非负整数字面量，例如 2 或 2'd2。`);
+                    const base = { d: 10, h: 16, b: 2, o: 8 }[literal[2].toLowerCase()];
+                    const digits = literal[3].replace(/_/g, '');
+                    const valid = { 10: /^\d+$/, 16: /^[\da-f]+$/i, 2: /^[01]+$/, 8: /^[0-7]+$/ }[base];
+                    value = parseInt(digits, base);
+                    if (!valid.test(digits) || Number(literal[1]) < 1 || Number(literal[1]) > 32 || value >= 2 ** Number(literal[1])) {
+                        throw new Error(`${name} 的进制数字或位宽无效。`);
+                    }
+                }
+                if (!Number.isSafeInteger(value)) throw new Error(`${name} 必须是有效整数。`);
+                config[name] = value;
+            }
+            if (config.WAVE_TYPE > 3) throw new Error('WAVE_TYPE 只能为 0、1、2、3。');
+            if (config.FREQUENCY_HZ < 1 || config.FREQUENCY_HZ > 1000) throw new Error('FREQUENCY_HZ 范围为 1–1000 Hz。');
+            if (config.AMPLITUDE_MV > 2500 || config.OFFSET_MV > 5000 || config.OFFSET_MV - config.AMPLITUDE_MV < 0 || config.OFFSET_MV + config.AMPLITUDE_MV > 5000) {
+                throw new Error('幅值范围为 0–2500 mV，且偏置 ± 幅值必须位于 0–5000 mV。');
+            }
+            if (normalize(code) !== normalize(generateDdsSignalGeneratorPresetHdl())) {
+                throw new Error('此案例支持修改顶部四个参数及注释；修改电路逻辑请到「Verilog代码生成」进行编译仿真。');
+            }
+            return config;
+        }
+
+        function isLegacyDdsHdl(code) {
+            return !/\bparameter\s+integer\s+WAVE_TYPE\b/.test(code) && /module\s+dds\s*\(/.test(code) && /module\s+sin_table\s*\(/.test(code);
+        }
+
+        function getDdsRuntimeConfig(fpga) {
+            const code = fpga.params.hdl || '';
+            if (fpga.state.ddsSource !== code) {
+                const config = parseDdsHdlConfig(isLegacyDdsHdl(code) ? generateDdsSignalGeneratorPresetHdl() : code);
+                fpga.state.ddsConfig = config;
+                fpga.state.ddsSource = code;
+            }
+            return fpga.state.ddsConfig;
+        }
+
+        function getDdsSampleCode(config, phaseAcc) {
+            const address = Math.floor(phaseAcc / 65536) & 255;
+            let sample;
+            if (config.WAVE_TYPE === 0) sample = Math.round(511.5 + 511.5 * Math.sin((address >> 2) * Math.PI / 32));
+            else if (config.WAVE_TYPE === 1) sample = address * 4;
+            else if (config.WAVE_TYPE === 2) sample = (address < 128 ? address : 255 - address) * 8;
+            else sample = address < 128 ? 1023 : 0;
+            const mv = config.OFFSET_MV + Math.trunc((2 * sample - 1023) * config.AMPLITUDE_MV / 1023);
+            return Math.max(0, Math.min(1023, Math.floor((mv * 1023 + 2500) / 5000)));
         }
 
         function generateSimpleVoltmeterPresetHdl() {
@@ -11214,7 +11214,7 @@ endmodule`;
                 const keepTrafficPreset = fpga.params?.presetKey === 'traffic-light-fsm';
                 const mixedPreset = getMixedPresetConfig(fpga.params?.presetKey);
                 fpga.params.sourceMode = keepTrafficPreset ? '状态转换图' : (mixedPreset ? '预置案例' : (hasCompiledPorts ? 'Verilog' : activeDefineModeName));
-                if (mixedPreset) fpga.params.hdl = mixedPreset.getHdl();
+                if (mixedPreset) fpga.params.hdl = fpga.params.hdl || mixedPreset.getHdl();
                 else fpga.params.hdl = document.getElementById('verilog-editor').value || '';
                 fpga.pins = keepTrafficPreset
                     ? getTrafficLightFpgaPins()
@@ -12367,7 +12367,147 @@ endmodule`;
             return '等待数据';
         }
 
+        let fpgaEditorComp = null;
+        let fpgaEditorReturnFocus = null;
+        let fpgaEditorFontSize = 14;
+
+        function openFpgaHdlEditor(comp) {
+            fpgaEditorComp = comp;
+            fpgaEditorReturnFocus = document.activeElement;
+            const dds = comp.params?.presetKey === 'dds-signal-generator';
+            const editor = document.getElementById('fpga-hdl-source');
+            editor.value = comp.params.hdl || '';
+            editor.readOnly = !dds;
+            document.getElementById('fpga-hdl-title').textContent = `${comp.label} · HDL ${dds ? '编辑器' : '源码'}`;
+            document.getElementById('fpga-hdl-subtitle').textContent = dds
+                ? '修改顶部参数，保存后重新生成 DAC 与 PWM RC 波形。'
+                : `${comp.params.sourceMode || '项目'} · ${getMixedPins(comp).length} 个引脚 · 在「Verilog代码生成」页编辑后同步 FPGA。`;
+            document.getElementById('fpga-hdl-file').textContent = dds ? 'dds_signal_generator_top.v' : 'fpga_core.v';
+            document.getElementById('fpga-hdl-apply').hidden = !dds;
+            document.getElementById('fpga-hdl-save-hint').textContent = dds ? 'Ctrl / ⌘ + S 保存并应用 · 保存项目可保留代码' : '此处显示当前封装的 HDL 源码';
+            document.getElementById('fpga-hdl-cancel').textContent = dds ? '取消' : '关闭';
+            document.getElementById('fpga-dds-upgrade').hidden = !dds || !isLegacyDdsHdl(editor.value);
+            document.getElementById('fpga-hdl-reference').innerHTML = dds ? `
+                <h3>信号参数</h3><dl>
+                <dt>WAVE_TYPE</dt><dd>0 &nbsp; 正弦波<br>1 &nbsp; 锯齿波<br>2 &nbsp; 三角波<br>3 &nbsp; 方波</dd>
+                <dt>FREQUENCY_HZ</dt><dd>输出频率 · 1–1000 Hz</dd>
+                <dt>AMPLITUDE_MV</dt><dd>峰值幅度 · 0–2500 mV<br>峰峰值为幅度的两倍。</dd>
+                <dt>OFFSET_MV</dt><dd>直流偏置 · 0–5000 mV<br>偏置 ± 幅值须在输出范围内。</dd></dl>
+                <p>例如：WAVE_TYPE = 2 生成三角波。支持十进制及 Verilog 进制整数。</p>
+                <p>本案例读取这四个参数驱动 DDS 模型；DAC 为 10 位量化，PWM RC 为平均占空比近似。其他逻辑修改请使用 Verilog 编译仿真。</p>`
+                : '<h3>HDL 源码</h3><p>使用工具栏调整字号或最大化窗口。引脚与行为由当前项目或案例定义。</p>';
+            document.getElementById('fpga-hdl-modal').hidden = false;
+            updateFpgaEditorStatus();
+            editor.scrollTop = 0;
+            editor.scrollLeft = 0;
+            syncFpgaEditorScroll();
+            editor.focus();
+            editor.setSelectionRange(0, 0);
+            updateFpgaEditorCursor();
+        }
+
+        function syncFpgaEditorScroll() {
+            document.getElementById('fpga-hdl-lines').scrollTop = document.getElementById('fpga-hdl-source').scrollTop;
+        }
+
+        function updateFpgaEditorCursor() {
+            const editor = document.getElementById('fpga-hdl-source');
+            const before = editor.value.slice(0, editor.selectionStart);
+            const line = before.split('\n').length;
+            const col = before.length - before.lastIndexOf('\n');
+            document.getElementById('fpga-hdl-cursor').textContent = `Ln ${line}, Col ${col} · ${editor.value.split('\n').length} 行`;
+        }
+
+        function updateFpgaEditorStatus() {
+            const editor = document.getElementById('fpga-hdl-source');
+            document.getElementById('fpga-hdl-lines').textContent = editor.value.split('\n').map((_, i) => i + 1).join('\n');
+            document.getElementById('fpga-hdl-dirty').textContent = editor.readOnly ? '只读' : (editor.value === fpgaEditorComp.params.hdl ? '已保存' : '未保存');
+            const feedback = document.getElementById('fpga-hdl-feedback');
+            feedback.dataset.error = 'false';
+            if (!editor.readOnly) {
+                try {
+                    const config = parseDdsHdlConfig(editor.value);
+                    const wave = ['正弦波', '锯齿波', '三角波', '方波'][config.WAVE_TYPE];
+                    feedback.textContent = `参数有效 · ${wave} · ${config.FREQUENCY_HZ} Hz · 幅值 ${config.AMPLITUDE_MV / 1000} V · 偏置 ${config.OFFSET_MV / 1000} V`;
+                    document.getElementById('fpga-hdl-apply').disabled = false;
+                } catch (error) {
+                    feedback.dataset.error = 'true';
+                    feedback.textContent = isLegacyDdsHdl(editor.value) ? '这是旧版只读案例代码。点击「使用可配置模板」升级后，即可修改参数。' : error.message;
+                    document.getElementById('fpga-hdl-apply').disabled = true;
+                }
+            } else feedback.textContent = '源码预览 · 可复制代码到「Verilog代码生成」页编辑和编译。';
+            updateFpgaEditorCursor();
+            syncFpgaEditorScroll();
+        }
+
+        function resizeFpgaEditorFont(delta) {
+            fpgaEditorFontSize = Math.max(12, Math.min(22, fpgaEditorFontSize + delta));
+            document.querySelector('.fpga-code-area').style.setProperty('--fpga-code-size', `${fpgaEditorFontSize}px`);
+            syncFpgaEditorScroll();
+        }
+
+        function toggleFpgaEditorSize() {
+            const full = document.querySelector('.fpga-editor-dialog').classList.toggle('is-maximized');
+            const button = document.getElementById('fpga-maximize');
+            button.textContent = full ? '还原窗口' : '最大化';
+            button.setAttribute('aria-pressed', String(full));
+        }
+
+        function upgradeDdsEditorTemplate() {
+            document.getElementById('fpga-hdl-source').value = generateDdsSignalGeneratorPresetHdl();
+            document.getElementById('fpga-dds-upgrade').hidden = true;
+            updateFpgaEditorStatus();
+        }
+
+        function closeFpgaHdlEditor() {
+            document.getElementById('fpga-hdl-modal').hidden = true;
+            fpgaEditorComp = null;
+            if (fpgaEditorReturnFocus?.isConnected) fpgaEditorReturnFocus.focus();
+        }
+
+        function saveFpgaHdlEditor() {
+            if (fpgaEditorComp?.params?.presetKey !== 'dds-signal-generator') return;
+            const code = document.getElementById('fpga-hdl-source').value;
+            let config;
+            try { config = parseDdsHdlConfig(code); }
+            catch (error) { updateFpgaEditorStatus(); return; }
+            fpgaEditorComp.params.hdl = code;
+            resetMixedSimulation();
+            // Show three periods with 100 samples per period after applying parameters.
+            document.getElementById('mixed-dt').value = String(1 / (config.FREQUENCY_HZ * 100));
+            document.getElementById('mixed-duration').value = String(3 / config.FREQUENCY_HZ);
+            const name = ['正弦波', '锯齿波', '三角波', '方波'][config.WAVE_TYPE];
+            mixedLog(`DDS 参数已应用：${name}，${config.FREQUENCY_HZ} Hz`);
+            closeFpgaHdlEditor();
+            startMixedSimulation();
+            showToast(`已应用${name}，正在重新仿真`, 'success');
+        }
+
+        function handleFpgaEditorKey(event) {
+            event.stopPropagation();
+            const editor = document.getElementById('fpga-hdl-source');
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+                event.preventDefault();
+                saveFpgaHdlEditor();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                if (event.target === editor) document.getElementById('fpga-hdl-cancel').focus();
+                else closeFpgaHdlEditor();
+            } else if (event.key === 'Tab' && event.target === editor && !editor.readOnly && !event.shiftKey) {
+                event.preventDefault();
+                editor.setRangeText('    ', editor.selectionStart, editor.selectionEnd, 'end');
+                updateFpgaEditorStatus();
+            } else if (event.key === 'Tab') {
+                const controls = [...document.querySelectorAll('#fpga-hdl-modal button:not([hidden]):not(:disabled), #fpga-hdl-source')];
+                const target = event.shiftKey ? controls[controls.length - 1] : controls[0];
+                if ((event.shiftKey && event.target === controls[0]) || (!event.shiftKey && event.target === controls[controls.length - 1])) {
+                    event.preventDefault(); target.focus();
+                }
+            }
+        }
+
         function openMixedConfig(comp) {
+            if (comp.type === 'FPGA') { openFpgaHdlEditor(comp); return; }
             currentConfigComp = comp;
             const modal = document.getElementById('param-modal');
             const content = document.getElementById('param-content');
@@ -12532,6 +12672,13 @@ endmodule`;
         function startMixedSimulation() {
             initMixedTabIfNeeded();
             pauseMixedSimulation();
+
+            try {
+                mixedState.components.filter(c => c.type === 'FPGA' && c.params?.presetKey === 'dds-signal-generator').forEach(getDdsRuntimeConfig);
+            } catch (error) {
+                showToast(error.message, 'error');
+                return;
+            }
 
             mixedState.sim.dt = Math.max(0.00001, parseFloat(document.getElementById('mixed-dt').value) || 0.01);
             mixedState.sim.duration = Math.max(mixedState.sim.dt, parseFloat(document.getElementById('mixed-duration').value) || 2);
@@ -12790,49 +12937,37 @@ endmodule`;
             });
         }
 
-        function stepDdsSignalGeneratorPreset(outPins, dt) {
-            const preset = mixedState.sim.presetState;
-            const twoPow24 = 16777216;
-            if (typeof preset.phaseAcc !== 'number') {
-                preset.phaseAcc = 0;
-                preset.simClock = 120000;
-                preset.outputHz = 120;
-                preset.fWord = Math.max(1, Math.round((preset.outputHz / preset.simClock) * twoPow24));
-                preset.pwmPhase = 0;
-                preset.pwmCarrierHz = 2400;
-                preset.pwmRcVoltage = 0;
-                preset.vref = 5;
-                preset.waveOffset = preset.vref * 0.5;
-                preset.waveAmp = preset.vref * 0.46;
+        function stepDdsSignalGeneratorPreset(outPins, dt, fpga) {
+            let config;
+            try { config = getDdsRuntimeConfig(fpga); }
+            catch (error) {
+                pauseMixedSimulation();
+                if (fpga.state.ddsError !== error.message) showToast(error.message, 'error');
+                fpga.state.ddsError = error.message;
+                return;
             }
-
-            preset.phaseAcc = (preset.phaseAcc + preset.fWord * preset.simClock * dt) % twoPow24;
-            const phase = (preset.phaseAcc / twoPow24) * Math.PI * 2;
-            const analogOut = preset.waveOffset + preset.waveAmp * Math.sin(phase);
-            const rawCode = Math.round((analogOut / preset.vref) * 1023);
-            const code = Math.max(0, Math.min(1023, rawCode));
-            const duty = code / 1023;
-
-            preset.pwmPhase = (preset.pwmPhase + preset.pwmCarrierHz * dt) % 1;
-            const pwmBit = preset.pwmPhase < duty ? 1 : 0;
-
+            const preset = mixedState.sim.presetState;
+            const clockHz = 2457600;
+            const phaseStep = Math.round(config.FREQUENCY_HZ * 16777216 / clockHz);
+            preset.clockRemainder = (preset.clockRemainder || 0) + dt * clockHz;
+            const ticks = Math.floor(preset.clockRemainder + 1e-9);
+            preset.clockRemainder -= ticks;
+            preset.phaseAcc = ((preset.phaseAcc || 0) + phaseStep * ticks) % 16777216;
+            preset.pwmCounter = ((preset.pwmCounter || 0) + ticks) % 1024;
+            const code = getDdsSampleCode(config, preset.phaseAcc);
+            const analogOut = code * 5 / 1023;
+            const pwmBit = preset.pwmCounter < code ? 1 : 0;
             const pwmCap = mixedState.components.find(c => c.params?.presetNode === 'PWM_RC_OUT');
             const tau = pwmCap?.params?.simTau || 0.0016;
             const alpha = 1 - Math.exp(-dt / Math.max(1e-6, tau));
-            const pwmTarget = duty * preset.vref;
-            preset.pwmRcVoltage = preset.pwmRcVoltage + alpha * (pwmTarget - preset.pwmRcVoltage);
-
+            // RC 支路采用平均占空比模型，DAC 支路保留 10 位量化。
+            preset.pwmRcVoltage = (preset.pwmRcVoltage || 0) + alpha * (analogOut - (preset.pwmRcVoltage || 0));
+            preset.waveType = config.WAVE_TYPE;
+            preset.outputHz = phaseStep * clockHz / 16777216;
             outPins.forEach(p => {
-                let val = 0;
-                if (p.id === 'PWM_Out') {
-                    val = pwmBit;
-                } else if (/^DA\d+$/.test(p.id)) {
-                    const bit = parseInt(p.id.slice(2), 10);
-                    val = (code >> bit) & 1;
-                }
+                const val = p.id === 'PWM_Out' ? pwmBit : (/^DA\d+$/.test(p.id) ? (code >> parseInt(p.id.slice(2), 10)) & 1 : 0);
                 mixedState.sim.logic[`FPGA:${p.id}`] = val;
             });
-
             const opamp = mixedState.components.find(c => c.type === 'OPAMP' && c.params?.presetNode === 'DDS_OUT');
             if (opamp) opamp.state.analog = analogOut;
             if (pwmCap) pwmCap.state.analog = preset.pwmRcVoltage;
@@ -12882,7 +13017,7 @@ endmodule`;
             }
 
             if (fpga.params?.presetKey === 'dds-signal-generator') {
-                stepDdsSignalGeneratorPreset(outPins, mixedState.sim.dt || 0.01);
+                stepDdsSignalGeneratorPreset(outPins, mixedState.sim.dt || 0.01, fpga);
                 return;
             }
 
