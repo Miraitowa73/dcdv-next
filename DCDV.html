@@ -1908,6 +1908,11 @@
         .fsm-label { fill: #cbd5e1; font-size: 13px; text-anchor: middle; pointer-events: none; font-family: monospace; font-weight: bold; }
         .fsm-label.selected { fill: #f59e0b; }
         .fsm-label-bg { fill: #0f172a; opacity: 0.8; pointer-events: none; }
+        .fsm-label-handle { cursor: grab; pointer-events: all; touch-action: none; user-select: none; }
+        .fsm-label-handle .fsm-label-bg { pointer-events: all; stroke: transparent; }
+        .fsm-label-handle:hover .fsm-label-bg,
+        .fsm-label-handle.selected .fsm-label-bg { stroke: #f59e0b; }
+        .fsm-label-dragging, .fsm-label-dragging .fsm-label-handle { cursor: grabbing; }
         .challenge-fsm-card {
             overflow: hidden;
         }
@@ -2774,7 +2779,7 @@
                                 </svg>
                             </div>
                             <div class="absolute bottom-2 left-4 text-[10px] text-slate-500 pointer-events-none z-20 px-2 py-1 bg-slate-900/80 rounded backdrop-blur">
-                                提示: 鼠标<strong>左键</strong>拖拽状态圆圈，<strong>右键</strong>点击圆圈进行连线（点同一个圆圈生成自环）。选中元素后可在右上角编辑标签。
+                                提示: <strong>左键拖拽</strong>状态圆圈或转移标签，<strong>右键</strong>点击圆圈进行连线（点同一个圆圈生成自环）。点击标签可高亮对应连线，并在右上角编辑。
                             </div>
                         </div>
 
@@ -3914,7 +3919,7 @@
                         </svg>
                     </div>
                     <div class="challenge-fsm-help">
-                        左键拖拽状态圆圈；右键点击起点状态，再右键/左键点击终点状态创建转移。选中状态或转移线后，在右上角编辑标签；Delete 删除选中项。
+                        左键拖拽状态圆圈或转移标签；右键点击起点状态，再右键/左键点击终点状态创建转移。点击标签可高亮对应连线，在右上角编辑；Delete 删除选中项。
                     </div>
                     <div id="challenge-fsm-table" class="challenge-fsm-table"></div>
                 </div>
@@ -4074,6 +4079,7 @@
             const svg = document.getElementById('challenge-fsm-wires');
             if (!svg) return;
             svg.innerHTML = '';
+            const labels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             challengeFsmData.transitions.forEach(trans => {
                 const fromState = challengeFsmData.states.find(state => state.id === trans.from);
                 const toState = challengeFsmData.states.find(state => state.id === trans.to);
@@ -4098,23 +4104,9 @@
                 path.setAttribute('d', geom.path);
                 svg.appendChild(path);
 
-                const textLength = Math.max(28, String(trans.label || '').length * 8);
-                const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                textBg.setAttribute('class', 'fsm-label-bg');
-                textBg.setAttribute('x', geom.lx - textLength / 2 - 4);
-                textBg.setAttribute('y', geom.ly - 12);
-                textBg.setAttribute('width', textLength + 8);
-                textBg.setAttribute('height', 18);
-                textBg.setAttribute('rx', 4);
-                svg.appendChild(textBg);
-
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('class', `fsm-label ${isSelected ? 'selected' : ''}`);
-                text.setAttribute('x', geom.lx);
-                text.setAttribute('y', geom.ly + 2);
-                text.textContent = trans.label;
-                svg.appendChild(text);
+                appendFsmTransitionLabel(labels, trans, geom, challengeFsmData);
             });
+            svg.appendChild(labels);
         }
 
         function handleChallengeFsmNodeClick(stateId) {
@@ -4138,6 +4130,7 @@
         }
 
         function challengeFsmMouseMove(event) {
+            if (moveFsmTransitionLabel(event, challengeFsmData)) return;
             if (challengeFsmData.dragObj) {
                 if (!isPrimaryPointerStillDown(event)) {
                     finishPointerInteractions({ source: 'cancel', render: true });
@@ -7569,6 +7562,7 @@
 
         // --- Restored FSM Engine ---
         const fsmData = { states: [], transitions: [], idSeed: 0, transSeed: 0, selectedState: null, selectedTrans: null, pendingStart: null, dragObj: null, presetKey: null };
+        let fsmLabelDrag = null;
         const trafficLightOutputNames = ['MAIN_R', 'MAIN_Y', 'MAIN_G', 'SIDE_R', 'SIDE_Y', 'SIDE_G'];
         const trafficLightPresetStates = [
             {
@@ -7726,9 +7720,114 @@
             return { path: `M ${startX} ${startY} Q ${cx} ${cy} ${endX} ${endY}`, lx: lx, ly: ly };
         }
 
+        function getFsmLabelPosition(trans, geom) {
+            return {
+                x: geom.lx + (Number.isFinite(trans.labelOffset?.x) ? trans.labelOffset.x : 0),
+                y: geom.ly + (Number.isFinite(trans.labelOffset?.y) ? trans.labelOffset.y : 0)
+            };
+        }
+
+        function getFsmSurfacePoint(surface, event) {
+            const rect = surface.getBoundingClientRect();
+            return {
+                x: (event.clientX - rect.left) * (surface.clientWidth / rect.width || 1) + surface.scrollLeft,
+                y: (event.clientY - rect.top) * (surface.clientHeight / rect.height || 1) + surface.scrollTop
+            };
+        }
+
+        function appendFsmTransitionLabel(layer, trans, geom, data) {
+            const ns = 'http://www.w3.org/2000/svg';
+            const selected = data.selectedTrans === trans.id;
+            const pos = getFsmLabelPosition(trans, geom);
+            const width = Math.max(28, String(trans.label || '').length * 8) + 8;
+            const group = document.createElementNS(ns, 'g');
+            group.setAttribute('class', `fsm-label-handle ${selected ? 'selected' : ''}`);
+            group.dataset.transId = String(trans.id);
+            const title = document.createElementNS(ns, 'title');
+            const from = data.states.find(state => state.id === trans.from);
+            const to = data.states.find(state => state.id === trans.to);
+            title.textContent = `${from?.label || ''} → ${to?.label || ''}：${trans.label}（拖动调整位置，点击编辑）`;
+            group.appendChild(title);
+            const bg = document.createElementNS(ns, 'rect');
+            bg.setAttribute('class', 'fsm-label-bg');
+            bg.setAttribute('x', pos.x - width / 2);
+            bg.setAttribute('y', pos.y - 12);
+            bg.setAttribute('width', width);
+            bg.setAttribute('height', 20);
+            bg.setAttribute('rx', 4);
+            group.appendChild(bg);
+            const text = document.createElementNS(ns, 'text');
+            text.setAttribute('class', `fsm-label ${selected ? 'selected' : ''}`);
+            text.setAttribute('x', pos.x);
+            text.setAttribute('y', pos.y + 2);
+            text.textContent = trans.label;
+            group.appendChild(text);
+            group.onpointerdown = event => {
+                if (event.button !== 0 || fsmLabelDrag) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const challenge = data === challengeFsmData;
+                const prefix = challenge ? 'challenge-fsm' : 'fsm';
+                const surface = document.getElementById(`${prefix}-surface`);
+                const point = getFsmSurfacePoint(surface, event);
+                data.selectedTrans = trans.id;
+                data.selectedState = null;
+                data.pendingStart = null;
+                data.dragObj = null;
+                document.getElementById(`${prefix}-preview`).innerHTML = '';
+                fsmLabelDrag = {
+                    data, trans, surface, pointerId: event.pointerId, moved: false,
+                    offsetX: point.x - pos.x, offsetY: point.y - pos.y,
+                    startX: point.x, startY: point.y
+                };
+                // Capture on the stable canvas: rendering replaces the SVG labels.
+                surface.setPointerCapture(event.pointerId);
+                surface.classList.add('fsm-label-dragging');
+                if (challenge) renderChallengeFsm(); else renderFsm();
+            };
+            layer.appendChild(group);
+        }
+
+        function moveFsmTransitionLabel(event, data) {
+            const drag = fsmLabelDrag;
+            if (!drag || drag.data !== data) return false;
+            if (event.pointerId !== drag.pointerId) return true;
+            if (!isPrimaryPointerStillDown(event)) {
+                finishFsmTransitionLabelDrag();
+                return true;
+            }
+            const point = getFsmSurfacePoint(drag.surface, event);
+            if (!drag.moved && Math.hypot(point.x - drag.startX, point.y - drag.startY) < 3) return true;
+            const from = data.states.find(state => state.id === drag.trans.from);
+            const to = data.states.find(state => state.id === drag.trans.to);
+            if (!from || !to || !data.transitions.includes(drag.trans)) {
+                finishFsmTransitionLabelDrag();
+                return true;
+            }
+            const geom = getFsmPath(from, to);
+            const halfWidth = (Math.max(28, String(drag.trans.label || '').length * 8) + 8) / 2;
+            const surface = drag.surface;
+            const x = Math.max(halfWidth, Math.min(surface.clientWidth - halfWidth, point.x - drag.offsetX - surface.scrollLeft)) + surface.scrollLeft;
+            const y = Math.max(12, Math.min(surface.clientHeight - 8, point.y - drag.offsetY - surface.scrollTop)) + surface.scrollTop;
+            drag.trans.labelOffset = { x: x - geom.lx, y: y - geom.ly };
+            drag.moved = true;
+            if (data === challengeFsmData) renderChallengeFsmWires(); else renderFsmWires();
+            return true;
+        }
+
+        function finishFsmTransitionLabelDrag() {
+            const drag = fsmLabelDrag;
+            if (!drag) return;
+            fsmLabelDrag = null;
+            safeReleasePointerCapture(drag.surface, drag.pointerId);
+            drag.surface.classList.remove('fsm-label-dragging');
+            if (drag.moved && drag.data === challengeFsmData) saveActiveChallengeFsmDraft();
+        }
+
         function renderFsmWires() {
             const svg = document.getElementById('fsm-wires');
             svg.innerHTML = '';
+            const labels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             
             fsmData.transitions.forEach(trans => {
                 const s1 = fsmData.states.find(s => s.id === trans.from);
@@ -7749,19 +7848,9 @@
                 path.setAttribute('d', geom.path);
                 svg.appendChild(path);
 
-                const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                const textLen = trans.label.length * 8;
-                textBg.setAttribute('class', 'fsm-label-bg'); textBg.setAttribute('x', geom.lx - textLen/2 - 2);
-                textBg.setAttribute('y', geom.ly - 10); textBg.setAttribute('width', textLen + 4);
-                textBg.setAttribute('height', 16); textBg.setAttribute('rx', 4);
-                svg.appendChild(textBg);
-
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('class', `fsm-label ${isSelected ? 'selected' : ''}`);
-                text.setAttribute('x', geom.lx); text.setAttribute('y', geom.ly + 2);
-                text.textContent = trans.label;
-                svg.appendChild(text);
+                appendFsmTransitionLabel(labels, trans, geom, fsmData);
             });
+            svg.appendChild(labels);
         }
 
         function handleFsmNodeClick(stateId) {
@@ -7777,6 +7866,7 @@
         }
 
         function fsmMouseMove(e) {
+            if (moveFsmTransitionLabel(e, fsmData)) return;
             if(fsmData.dragObj) {
                 if (!isPrimaryPointerStillDown(e)) {
                     finishPointerInteractions({ source: 'cancel', render: true });
@@ -12157,6 +12247,7 @@ endmodule`;
         }
 
         function finishPointerInteractions(options = {}) {
+            finishFsmTransitionLabelDrag();
             const render = options.render !== false;
             const hadSchPan = !!schState.viewport.pan;
             const hadMixedPan = !!mixedState.viewport.pan;
