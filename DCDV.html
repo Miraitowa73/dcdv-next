@@ -12398,11 +12398,11 @@ endmodule`;
                 : '<h3>HDL 源码</h3><p>使用工具栏调整字号或最大化窗口。引脚与行为由当前项目或案例定义。</p>';
             document.getElementById('fpga-hdl-modal').hidden = false;
             updateFpgaEditorStatus();
+            editor.focus();
+            editor.setSelectionRange(0, 0);
             editor.scrollTop = 0;
             editor.scrollLeft = 0;
             syncFpgaEditorScroll();
-            editor.focus();
-            editor.setSelectionRange(0, 0);
             updateFpgaEditorCursor();
         }
 
