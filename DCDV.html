@@ -2855,14 +2855,15 @@
 
             <!-- TAB 2: Verilog -->
             <div id="tab-verilog" class="absolute inset-0 hidden flex-col p-6 bg-slate-950 min-h-0">
-                <div class="flex justify-between items-center mb-4 shrink-0">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4 shrink-0">
                     <div class="segmented-bar" id="hdl-mode-group">
                         <button onclick="switchHdlMode(this, '数据流')" class="hdl-btn segmented-btn active">数据流方式</button>
                         <button onclick="switchHdlMode(this, '门级')" class="hdl-btn segmented-btn">结构级方式</button>
                         <button onclick="switchHdlMode(this, '行为级')" class="hdl-btn segmented-btn">行为级方式</button>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
                         <button id="btn-ai-review" onclick="runAICodeReview()" class="primary-cta ai-cta px-4 py-1.5 text-sm flex items-center">✨ AI 代码审查</button>
+                        <button id="btn-compile-current-hdl" onclick="runCompile({ useCurrentHdl: true })" title="直接编译编辑器中的代码；编译通过后，仿真也使用这份 HDL。" class="primary-cta border border-cyan-700 bg-cyan-950 hover:bg-cyan-900 text-cyan-100 px-4 py-1.5 text-sm flex items-center"><i data-lucide="file-code-2" class="w-4 h-4 mr-2"></i> 使用当前 HDL 编译</button>
                         <button id="btn-run-compile" onclick="runCompile()" class="primary-cta bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 text-sm flex items-center"><i data-lucide="play" class="w-4 h-4 mr-2"></i> 检查代码是否可编译</button>
                     </div>
                 </div>
@@ -2870,6 +2871,7 @@
                     <span><strong>数据流</strong>：assign 连续赋值</span>
                     <span><strong>结构级</strong>：门或模块实例化</span>
                     <span><strong>行为级</strong>：always 块描述</span>
+                    <span>手工修改代码后，点击<strong>使用当前 HDL 编译</strong>，后续仿真将使用这份代码。</span>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 mb-4 shrink-0">
                     <div id="backend-status-chip" class="status-chip info">
@@ -3267,6 +3269,8 @@
             sourceSignature: '',
             code: ''
         };
+        let acceptedCurrentHdlCode = null;
+        let hdlCompileInFlight = false;
         let aiGeneratedHdlState = {
             sourceSignature: '',
             codes: {}
@@ -5513,7 +5517,7 @@
             if (result.ok && compiledDesign.compileOk) {
                 const inputCount = compiledDesign.ports.filter(p => p.direction === 'input').length;
                 const outputCount = compiledDesign.ports.filter(p => p.direction !== 'input').length;
-                setCompiledSummary(`编译通过，top=${compiledDesign.selectedTop}，输入 ${inputCount} 个，输出 ${outputCount} 个。`, 'text-emerald-300');
+                setCompiledSummary(`编译通过，top=${compiledDesign.selectedTop}，输入 ${inputCount} 个，输出 ${outputCount} 个。${isCurrentHdlAccepted() ? ' 编译与仿真使用当前 HDL。' : ''}`, 'text-emerald-300');
             } else if (result.ok) {
                 setCompiledSummary('语法检查通过，但当前源码存在多个顶层候选，请先选择一个 top。', 'text-amber-300');
             } else {
@@ -5530,22 +5534,30 @@
             updateWaveBlockingHint();
         }
 
-        async function runCompile() {
-            if (!ensureDefinitionAndHdlConsistency('编译检查')) return;
-            const code = getVerilogEditorCode().trim();
+        async function runCompile({ useCurrentHdl = false } = {}) {
+            if (hdlCompileInFlight) return;
+            if (!useCurrentHdl && !ensureDefinitionAndHdlConsistency('编译检查')) return;
+            const sourceCode = getVerilogEditorCode();
+            const code = sourceCode.trim();
             if (!code) {
                 showToast('请先输入 Verilog 代码', 'info');
                 return;
             }
+            if (useCurrentHdl) acceptedCurrentHdlCode = sourceCode;
 
-            const button = document.getElementById('btn-run-compile');
+            const topModule = document.getElementById('top-module-select')?.value || '';
+            const buttons = ['btn-run-compile', 'btn-compile-current-hdl'].map(id => document.getElementById(id)).filter(Boolean);
+            const button = document.getElementById(useCurrentHdl ? 'btn-compile-current-hdl' : 'btn-run-compile');
             const original = button?.innerHTML;
+            hdlCompileInFlight = true;
+            buttons.forEach(item => { item.disabled = true; });
             if (button) {
-                button.disabled = true;
                 button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 mr-2 animate-spin"></i> 检查中';
                 lucide.createIcons();
             }
-            setCompileConsoleEntries([{ tone: 'cyan', text: '正在调用后端 iverilog 做真实编译检查，请稍候...' }]);
+            setCompileConsoleEntries([{ tone: 'cyan', text: isCurrentHdlAccepted()
+                ? '正在使用当前 HDL 调用后端 iverilog 编译；编译通过后，仿真也将使用这份代码。'
+                : '正在调用后端 iverilog 做真实编译检查，请稍候...' }]);
 
             try {
                 await refreshBackendHealth();
@@ -5553,9 +5565,13 @@
                     method: 'POST',
                     body: {
                         code,
-                        topModule: document.getElementById('top-module-select')?.value || undefined
+                        topModule: topModule || undefined
                     }
                 });
+                if (getVerilogEditorCode() !== sourceCode || (document.getElementById('top-module-select')?.value || '') !== topModule) {
+                    invalidateCompiledDesign('代码或顶层模块在编译期间已修改，请重新编译。');
+                    return;
+                }
                 syncCompiledDesignFromResponse(result);
                 showToast(result.ok ? '真实编译检查完成' : '编译失败', result.ok ? 'success' : 'error');
             } catch (error) {
@@ -5563,8 +5579,9 @@
                 setCompiledSummary(error.message || getBackendConnectionMessage(), 'text-red-300');
                 showToast('后端不可用', 'error');
             } finally {
+                hdlCompileInFlight = false;
+                buttons.forEach(item => { item.disabled = false; });
                 if (button) {
-                    button.disabled = false;
                     button.innerHTML = original;
                     lucide.createIcons();
                 }
@@ -5939,7 +5956,7 @@
             applyViewportTransform('sch');
             applyViewportTransform('mixed');
             fitViewport('sch');
-            document.getElementById('verilog-editor')?.addEventListener('input', () => invalidateCompiledDesign('源码已修改，请重新编译。'));
+            document.getElementById('verilog-editor')?.addEventListener('input', handleVerilogEditorInput);
             renderCompileConsole([]);
             renderChallengeTab();
             renderChallengeStrip();
@@ -8871,6 +8888,7 @@
         }
 
         function rememberAutoGeneratedHdl(modeName, code) {
+            acceptedCurrentHdlCode = null;
             lastAutoGeneratedHdl = {
                 defineMode: activeDefineModeName,
                 modeName,
@@ -8881,9 +8899,19 @@
 
         function canAutoOverwriteHdlEditor(editor, force = false) {
             if (force) return true;
+            if (isCurrentHdlAccepted()) return false;
             const currentCode = editor?.value || '';
             if (!currentCode.trim()) return true;
             return currentCode === lastAutoGeneratedHdl.code;
+        }
+
+        function isCurrentHdlAccepted() {
+            return acceptedCurrentHdlCode !== null && acceptedCurrentHdlCode === getVerilogEditorCode();
+        }
+
+        function handleVerilogEditorInput() {
+            acceptedCurrentHdlCode = null;
+            invalidateCompiledDesign('源码已修改；手工代码请点击“使用当前 HDL 编译”。');
         }
 
         function getCurrentDefineSourceSignature() {
@@ -8979,6 +9007,7 @@
         }
 
         function ensureDefinitionAndHdlConsistency(actionLabel) {
+            if (isCurrentHdlAccepted()) return true;
             if (activeDefineModeName === '文字描述') return true;
             const editorCode = getVerilogEditorCode().trim();
             const modeName = getSelectedHdlModeName();
@@ -9000,10 +9029,10 @@
                 return true;
             }
 
-            const mismatchMessage = `当前【${activeDefineModeName}】与 HDL 编辑器内容不一致。${actionLabel}会以 HDL 编辑器中的 Verilog 为准；请先同步 HDL 或确认手工代码后再继续。`;
+            const mismatchMessage = `当前【${activeDefineModeName}】与 HDL 编辑器内容不一致，尚未执行${actionLabel}。保留手工代码请点击“使用当前 HDL 编译”；重新生成请点击上方 HDL 方式按钮（将覆盖编辑器内容）。`;
             setCompiledSummary(mismatchMessage, 'text-amber-300');
             appendCompileConsoleEntry(mismatchMessage, 'amber');
-            showToast('请先同步 HDL 再继续', 'info');
+            showToast('保留手工代码请点击“使用当前 HDL 编译”', 'info');
             switchTab('tab-verilog');
             return false;
         }
@@ -9122,6 +9151,7 @@
         }
 
         function canUseDefinitionWavePreview() {
+            if (isCurrentHdlAccepted()) return false;
             if (!['逻辑表达式', '电路原理图'].includes(activeDefineModeName)) return false;
             const editorCode = getVerilogEditorCode().trim();
             if (!editorCode) return true;
@@ -9494,6 +9524,10 @@
                 return;
             }
             if (!ensureDefinitionAndHdlConsistency('运行仿真')) return;
+            if (isCurrentHdlAccepted() && !compiledDesign.compileOk) {
+                await runCompile();
+                if (!compiledDesign.compileOk) return;
+            }
             if (!useCompiledVerilogWaveModel()) {
                 evaluateSimulation();
                 setWaveRefreshStatus('波形已按定义实时刷新');

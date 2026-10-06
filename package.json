@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "package:portable": "powershell -ExecutionPolicy Bypass -File .\\build-portable.ps1",
-    "test": "node --test tests/auth-local.test.js tests/verilog-backend.test.js tests/server.test.js tests/schematic-gates.test.js tests/fsm-labels.test.js tests/mixed-dds.test.js"
+    "test": "node --test tests/auth-local.test.js tests/verilog-backend.test.js tests/server.test.js tests/schematic-gates.test.js tests/fsm-labels.test.js tests/mixed-dds.test.js tests/hdl-current-source.test.js"
   },
   "devDependencies": {
     "playwright": "^1.59.1"
