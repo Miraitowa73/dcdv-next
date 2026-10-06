@@ -18,5 +18,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Install Verilog toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y iverilog
+          iverilog -V
+          vvp -V
       - run: npm ci
       - run: npm test
