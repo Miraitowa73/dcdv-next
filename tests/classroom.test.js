@@ -54,8 +54,12 @@ test('import preserves zeros, forces first password change, and invalidates old 
   assert.equal((await call('my-classes', undefined, first.token)).status, 403);
   assert.equal((await call('progress', { state: {}, revision: null }, first.token, 'PUT')).status, 403);
   assert.equal((await call('change-password', { currentPassword: '123456', newPassword: 'short' }, first.token)).status, 400);
-  const changed = await call('change-password', { currentPassword: '123456', newPassword: 'Private-new-password' }, first.token);
+  assert.equal((await call('change-password', { newPassword: 'Private-new-password' })).status, 401);
+  const changed = await call('change-password', { newPassword: 'Private-new-password' }, first.token);
   assert.equal(changed.user.mustChangePassword, false);
+  assert.equal((await call('change-password', { newPassword: 'Another-private-password', mustChangePassword: true }, changed.token)).status, 400);
+  assert.equal((await call('change-password', { currentPassword: 'Wrong-password', newPassword: 'Another-private-password' }, changed.token)).status, 400);
+  assert.equal((await call('change-password', { currentPassword: 'Private-new-password', newPassword: 'Private-new-password' }, changed.token)).error.code, 'PASSWORD_UNCHANGED');
   assert.equal((await call('me', undefined, first.token)).status, 401);
   assert.equal((await call('my-classes', undefined, changed.token)).classes[0].id, group.id);
   const retry = await call(`classes/${group.id}/import`, { previewId: result.previewId, indices: [0] }, teacher.token);

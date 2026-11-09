@@ -34,7 +34,7 @@
     $('#content').innerHTML = '<div class="empty"><h2>登录后进入教学空间</h2><p>老师账号由管理员开通，学生可以用学号注册。</p><a href="./">前往登录 →</a></div>';
   }
   function passwordForm(required) {
-    return `<form id="password-form" class="form-panel"><p class="eyebrow">账号安全</p><h1>${required ? '首次登录，请修改密码' : '修改登录密码'}</h1><p>${required ? '当前使用的是临时密码。设置自己的密码后，即可进入学习或班级管理。' : '修改后其他电脑的登录凭证将失效，需要重新登录。'}</p><label>当前密码<input type="password" name="currentPassword" autocomplete="current-password" minlength="6" maxlength="72" required></label><label>新密码<input type="password" name="newPassword" autocomplete="new-password" minlength="8" maxlength="72" placeholder="8–72 个字符" required></label><label>确认新密码<input type="password" name="confirmation" autocomplete="new-password" minlength="8" maxlength="72" required></label><button type="submit" class="primary full">保存新密码并继续</button></form>`;
+    return `<form id="password-form" class="form-panel"><p class="eyebrow">账号安全</p><h1>${required ? '首次登录，请修改密码' : '修改登录密码'}</h1><p>${required ? '当前使用的是临时密码。设置自己的密码后，即可进入学习或班级管理。' : '修改后其他电脑的登录凭证将失效，需要重新登录。'}</p>${required ? '' : '<label>当前密码<input type="password" name="currentPassword" autocomplete="current-password" minlength="6" maxlength="72" required></label>'}<label>新密码<input type="password" name="newPassword" autocomplete="new-password" minlength="8" maxlength="72" placeholder="8–72 个字符" required></label><label>确认新密码<input type="password" name="confirmation" autocomplete="new-password" minlength="8" maxlength="72" required></label><button type="submit" class="primary full">保存新密码并继续</button></form>`;
   }
   async function paged(path, field) {
     let cursor = null; const output = [];

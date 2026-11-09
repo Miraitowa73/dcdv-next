@@ -123,10 +123,14 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
       if (method === 'GET' && path === '/api/account/me') return result(200, { user: publicUser(account.value), expiresAt: session.expiresAt });
       if (method === 'POST' && path === '/api/account/change-password') {
         await rateLimit('password-change', session.userId, 10, 600000);
-        const oldPassword = password(data.currentPassword, 6);
         const nextPassword = password(data.newPassword);
-        if (!await verifyPassword(account.value, oldPassword)) fail(400, 'BAD_CREDENTIALS', '当前密码不正确。');
-        if (oldPassword === nextPassword) fail(400, 'PASSWORD_UNCHANGED', '请设置不同的新密码。');
+        // A restricted first-login session already proves the temporary password.
+        // Only the persisted server flag allows initial setup without re-entering it.
+        if (!account.value.mustChangePassword) {
+          const oldPassword = password(data.currentPassword, 6);
+          if (!await verifyPassword(account.value, oldPassword)) fail(400, 'BAD_CREDENTIALS', '当前密码不正确。');
+        }
+        if (await verifyPassword(account.value, nextPassword)) fail(400, 'PASSWORD_UNCHANGED', '请设置不同的新密码。');
         const value = { ...account.value, ...await passwordFields(nextPassword), mustChangePassword: false, authVersion: (account.value.authVersion || 0) + 1 };
         if (!await store.put('users', session.usernameKey, value, account.version)) fail(409, 'CONFLICT', '账号已改变，请重试。');
         return result(200, await issueSession(value));

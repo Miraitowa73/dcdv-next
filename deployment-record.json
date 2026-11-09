@@ -35,7 +35,9 @@
     "regression_tests_passed": 92,
     "cloud_smoke_checks_passed": 13,
     "budget_alerts_configured": false,
-    "deployment_zip_sha256": "b439cd101570da07d8172a25f8fa01329cb7ea73a40e7c3e4b1820adc3ece4b9",
-    "classroom_status": "backend-deployed-frontend-and-admin-pending"
+    "deployment_zip_sha256": "3278fc6c5c1a8824121d6dd3e9822a6a6956856966a960880f7c0b9b36b26009",
+    "classroom_status": "deployed-admin-first-password-pending",
+    "administrator_initialized_at": "2026-11-09T04:05:48.183Z",
+    "bootstrap_environment_removed": true
   }
 }
