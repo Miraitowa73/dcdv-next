@@ -4,7 +4,7 @@
   const $ = selector => document.querySelector(selector);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const api = (path, data, method) => auth.request(path, { method: method || (data === undefined ? 'GET' : 'POST'), data });
-  let user, classes = [], selected = null, roster = [], currentPage = 1, preview = null, loadVersion = 0, busy = false;
+  let user, classes = [], selected = null, roster = [], currentPage = 1, preview = null, loadVersion = 0, busy = false, pendingConfirmation = null;
   const dialog = $('#dialog');
   function notice(message, error = false) {
     const node = $('#notice'); node.hidden = !message; node.classList.toggle('error', error); node.textContent = message;
@@ -25,6 +25,20 @@
   function modal(title, content) {
     $('#dialog-content').innerHTML = `<div class="dialog-head"><h2>${esc(title)}</h2><button data-action="close" aria-label="关闭窗口">关闭</button></div><div class="dialog-body">${content}</div>`;
     if (!dialog.open) dialog.showModal();
+  }
+  function confirmAction(message) {
+    return new Promise(resolve => {
+      pendingConfirmation = resolve;
+      modal('确认操作', `<p class="subtext">${esc(message)}</p><div class="actions"><button data-action="cancel-confirmation">取消</button><button class="danger" data-action="accept-confirmation">确认</button></div>`);
+      dialog.querySelector('[data-action="cancel-confirmation"]').focus();
+    });
+  }
+  function finishConfirmation(accepted) {
+    const resolve = pendingConfirmation;
+    if (!resolve) return;
+    pendingConfirmation = null;
+    dialog.close(); $('#dialog-content').replaceChildren();
+    resolve(accepted);
   }
   function renderSignedOut() {
     user = null; roster = []; classes = []; selected = null; preview = null;
@@ -124,7 +138,12 @@
     const url = URL.createObjectURL(new Blob([content], { type })); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   document.addEventListener('click', event => {
-    const button = event.target.closest('[data-action]'); if (!button || button.disabled || busy) return;
+    const button = event.target.closest('[data-action]'); if (!button || button.disabled) return;
+    if (pendingConfirmation) {
+      if (['accept-confirmation', 'cancel-confirmation', 'close'].includes(button.dataset.action)) finishConfirmation(button.dataset.action === 'accept-confirmation');
+      return;
+    }
+    if (busy) return;
     run(async () => {
       notice('');
       const action = button.dataset.action;
@@ -136,11 +155,11 @@
       else if (action === 'previous' || action === 'next') { currentPage += action === 'next' ? 1 : -1; renderStudents(); }
       else if (action === 'create-class' || action === 'rename-class') modal(action === 'create-class' ? '创建班级' : '修改班级名称', `<form id="class-form" data-mode="${action}" data-id="${action === 'create-class' ? crypto.randomUUID() : selected.id}"><label>班级名称<input name="name" maxlength="40" required value="${action === 'rename-class' ? esc(selected.name) : ''}" placeholder="例如：2026 级数字电路 1 班"></label><button class="primary" type="submit">保存班级</button></form>`);
       else if (action === 'archive-class') {
-        if (!confirm(selected.archived ? '恢复这个班级，继续导入与管理学生？' : '归档后停止导入，学生账号和进度仍保留。确定归档？')) return;
+        if (!await confirmAction(selected.archived ? '恢复这个班级，继续导入与管理学生？' : '归档后停止导入，学生账号和进度仍保留。确定归档？')) return;
         await api(`classes/${selected.id}`, { archived: !selected.archived }, 'PUT'); await loadClasses();
       } else if (action === 'remove') {
         const member = roster.find(item => item.userId === button.dataset.id);
-        if (!confirm(`将 ${member.name}（${member.studentNumber}）移出本班？账号与学习进度保留。`)) return;
+        if (!await confirmAction(`将 ${member.name}（${member.studentNumber}）移出本班？账号与学习进度保留。`)) return;
         await api(`classes/${selected.id}/students/${member.userId}/remove`, {}); await selectClass(selected.id);
       } else if (action === 'detail') {
         const item = await api(`classes/${selected.id}/students/${button.dataset.id}/progress`);
@@ -157,11 +176,11 @@
       } else if (action === 'commit-import') await commitImport();
       else if (action === 'add-teacher') modal('开通老师账号', '<form id="teacher-form"><label>开通方式<select name="mode"><option value="new">创建新老师账号</option><option value="existing">给已有账号授予老师权限</option></select></label><label>账号<input name="username" minlength="2" maxlength="24" autocomplete="off" required></label><label>老师姓名（用于新账号）<input name="displayName" maxlength="40" required></label><p class="help">新账号生成随机临时密码，首次登录须修改。已有账号保留密码、资料与进度。</p><button class="primary" type="submit">开通老师权限</button></form>');
       else if (action === 'reset-teacher') {
-        if (!confirm(`为 ${button.dataset.username} 生成新的临时密码？此老师的现有登录将失效，首次登录必须改密。`)) return;
+        if (!await confirmAction(`为 ${button.dataset.username} 生成新的临时密码？此老师的现有登录将失效，首次登录必须改密。`)) return;
         const response = await api('admin/teachers/reset-password', { username: button.dataset.username });
         modal('新的临时密码', `<p>账号：${esc(response.user.username)}</p><p class="subtext">请交给这位老师，关闭后不再显示。</p><div class="secret">${esc(response.temporaryPassword)}</div>`);
       } else if (action === 'revoke-teacher') {
-        if (!confirm(`撤销 ${button.dataset.username} 的老师权限？该账号将立即无法管理班级。`)) return;
+        if (!await confirmAction(`撤销 ${button.dataset.username} 的老师权限？该账号将立即无法管理班级。`)) return;
         await api('admin/teachers/revoke', { username: button.dataset.username }); await renderTeachers();
       }
     });
@@ -189,8 +208,8 @@
   });
   document.addEventListener('input', event => { if (event.target.id === 'search') { currentPage = 1; renderStudents(); } });
   document.addEventListener('change', event => { if (event.target.id === 'sort') { currentPage = 1; renderStudents(); } });
-  dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); });
-  dialog.addEventListener('close', () => { if (!busy) { $('#dialog-content').replaceChildren(); preview = null; } });
+  dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); if (pendingConfirmation) finishConfirmation(false); });
+  dialog.addEventListener('close', () => { if (pendingConfirmation) finishConfirmation(false); if (!busy) { $('#dialog-content').replaceChildren(); preview = null; } });
   window.addEventListener('beforeunload', event => { if (busy && preview) { event.preventDefault(); event.returnValue = ''; } });
   run(async () => { user = await auth.restoreSession(); if (!user) renderSignedOut(); else await loadHome(); });
 })();
