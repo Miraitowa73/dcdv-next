@@ -2463,6 +2463,35 @@
             background: rgba(2, 6, 23, .78);
             box-shadow: 0 0 0 4px rgba(34, 211, 238, .09);
         }
+        .auth-password-control { position: relative; }
+        .auth-password-control input { padding-right: 6.2rem; }
+        .auth-password-control input::-ms-reveal,
+        .auth-password-control input::-ms-clear { display: none; }
+        .auth-password-toggle {
+            position: absolute;
+            top: 50%;
+            right: .4rem;
+            transform: translateY(-50%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            min-height: 40px;
+            min-width: 80px;
+            padding: .45rem .6rem;
+            border: 1px solid rgba(103, 232, 249, .45);
+            border-radius: 10px;
+            background: #123747;
+            color: #a5f3fc;
+            font-size: .8rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .auth-password-toggle svg { width: 21px; height: 21px; flex: none; }
+        .auth-password-toggle[aria-pressed="false"] .auth-password-slash { display: none; }
+        .auth-password-toggle:hover { color: #ecfeff; background: #185066; border-color: #67e8f9; }
+        .auth-password-toggle:focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
+        .auth-password-toggle:disabled { opacity: .55; cursor: wait; }
         .auth-submit {
             width: 100%;
             margin-top: 1.4rem;
@@ -2603,11 +2632,23 @@
                         </div>
                         <div class="auth-field">
                             <label for="auth-password">密码</label>
-                            <input id="auth-password" name="password" type="password" minlength="8" maxlength="72" autocomplete="current-password" placeholder="8–72 个字符" required>
+                            <div class="auth-password-control">
+                                <input id="auth-password" name="password" type="password" minlength="8" maxlength="72" autocomplete="current-password" placeholder="8–72 个字符" required>
+                                <button type="button" class="auth-password-toggle" aria-controls="auth-password" aria-label="显示密码" aria-pressed="false" onclick="toggleAuthPassword('auth-password')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="auth-password-slash" d="m3 3 18 18"/></svg>
+                                    <span>显示</span>
+                                </button>
+                            </div>
                         </div>
                         <div id="auth-confirm-field" class="auth-field hidden">
                             <label for="auth-password-confirm">确认密码</label>
-                            <input id="auth-password-confirm" name="passwordConfirm" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="再次输入密码">
+                            <div class="auth-password-control">
+                                <input id="auth-password-confirm" name="passwordConfirm" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="再次输入密码">
+                                <button type="button" class="auth-password-toggle" aria-controls="auth-password-confirm" aria-label="显示确认密码" aria-pressed="false" onclick="toggleAuthPassword('auth-password-confirm')">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="auth-password-slash" d="m3 3 18 18"/></svg>
+                                    <span>显示</span>
+                                </button>
+                            </div>
                         </div>
                         <div id="auth-migration-fields" class="hidden">
                             <div class="auth-field">
@@ -5794,6 +5835,8 @@
         }
 
         function setAuthMode(mode) {
+            setAuthPasswordVisible('auth-password', false);
+            setAuthPasswordVisible('auth-password-confirm', false);
             currentAuthMode = mode === 'register' ? 'register' : (mode === 'migrate' && window.DcdvAuth?.isCloud ? 'migrate' : 'login');
             const isRegister = currentAuthMode === 'register';
             const isMigrate = currentAuthMode === 'migrate';
@@ -5822,6 +5865,21 @@
             setAuthMessage('');
             if (isRegister) setAuthMessage('学生可自行注册；老师账号由管理员开通。若老师已导入你的学号，请直接登录，初始密码为学号后六位。');
             if (isMigrate) setAuthMessage('请在原来注册账号的浏览器操作。原密码将用于新的云端账号，旧密码哈希不会上传。');
+        }
+
+        function setAuthPasswordVisible(inputId, visible) {
+            const input = document.getElementById(inputId);
+            const button = document.querySelector(`.auth-password-toggle[aria-controls="${inputId}"]`);
+            if (!input || !button) return;
+            input.type = visible ? 'text' : 'password';
+            button.setAttribute('aria-pressed', String(visible));
+            button.setAttribute('aria-label', `${visible ? '隐藏' : '显示'}${inputId === 'auth-password-confirm' ? '确认密码' : '密码'}`);
+            button.querySelector('span').textContent = visible ? '隐藏' : '显示';
+        }
+
+        function toggleAuthPassword(inputId) {
+            const input = document.getElementById(inputId);
+            if (input) setAuthPasswordVisible(inputId, input.type === 'password');
         }
 
         function setAuthBusy(isBusy) {
