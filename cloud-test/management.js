@@ -22,8 +22,9 @@
     try { await operation(); } catch (cause) { error(cause); }
     finally { busy = false; document.body.removeAttribute('aria-busy'); }
   }
-  function modal(title, content) {
-    $('#dialog-content').innerHTML = `<div class="dialog-head"><h2>${esc(title)}</h2><button data-action="close" aria-label="关闭窗口">关闭</button></div><div class="dialog-body">${content}</div>`;
+  function modal(title, content, footer = '') {
+    dialog.classList.toggle('has-footer', !!footer);
+    $('#dialog-content').innerHTML = `<div class="dialog-head"><h2>${esc(title)}</h2><button data-action="close" aria-label="关闭窗口">关闭</button></div><div class="dialog-body">${content}</div>${footer ? `<div class="dialog-footer">${footer}</div>` : ''}`;
     if (!dialog.open) dialog.showModal();
   }
   function confirmAction(message) {
@@ -107,12 +108,23 @@
   }
   function showImport() {
     preview = null;
-    modal('导入学生名单', `<p class="subtext">使用“学号、姓名”两列。新账号的临时密码为学号后六位，首次登录必须修改；已有账号保留密码和进度。</p><div class="actions"><button data-action="template-xlsx">下载 Excel 模板</button><button data-action="template-csv">下载 CSV 模板</button></div><div class="upload-panel"><label for="roster-file">选择名单文件</label><input id="roster-file" type="file" accept=".xlsx,.csv"><p class="help">每次最多 500 人，文件不超过 2 MB。请将学号设为文本并核对前导 0。Excel 读取首个工作表；CSV 请使用 UTF-8 编码。</p><button class="primary" data-action="preview">检查并预览名单</button></div><div id="import-result"></div>`);
+    modal('导入学生名单', `<p class="subtext">使用“学号、姓名”两列。新账号的临时密码为学号后六位，首次登录必须修改；已有账号保留密码和进度。</p><div class="actions"><button data-action="template-xlsx">下载 Excel 模板</button><button data-action="template-csv">下载 CSV 模板</button></div><div class="upload-panel"><label for="roster-file">选择名单文件</label><input id="roster-file" type="file" accept=".xlsx,.csv"><p class="help">每次最多 500 人，文件不超过 2 MB。请将学号设为文本并核对前导 0。Excel 读取首个工作表；CSV 请使用 UTF-8 编码。</p><button class="primary" data-action="preview">检查并预览名单</button></div><div id="import-result"></div>`, '<p id="import-status" class="help" role="status" aria-live="polite">选择文件并预览，确认后才会加入班级。</p><button class="primary" data-action="commit-import" disabled>确认导入</button>');
+  }
+  function resetImportPreview(message = '文件已更换，请重新检查并预览名单。') {
+    preview = null; $('#import-result').replaceChildren();
+    $('#import-status').textContent = message;
+    const button = dialog.querySelector('.dialog-footer button');
+    button.dataset.action = 'commit-import'; button.textContent = '确认导入'; button.disabled = true;
   }
   function renderPreview() {
     const counts = { new: 0, existing: 0, member: 0, error: 0 }; preview.rows.forEach(row => counts[row.status]++);
-    $('#import-result').innerHTML = `<p class="result-line">新增账号 ${counts.new} 人 · 已有账号 ${counts.existing} 人 · 已在班级 ${counts.member} 人 · 错误 ${counts.error} 行</p><p class="help">错误行会跳过。姓名不同的行需逐一确认；导入将仅更新本班名单姓名。</p><div class="table-wrap"><table><thead><tr><th>行</th><th>学号</th><th>姓名</th><th>检查结果</th><th>姓名确认</th></tr></thead><tbody>${preview.rows.map(row => `<tr><td>${row.index + 2}</td><td class="mono">${esc(row.studentNumber)}</td><td>${esc(row.name)}</td><td><span id="row-result-${row.index}" class="${row.status === 'error' ? 'error-text' : ''}">${esc(row.error || ({ new: '将新建学生账号', existing: '将加入本班，保留密码和进度', member: '已在班级，保留密码和进度' }[row.status]))}</span></td><td>${row.nameConflict ? `<label class="check"><input type="checkbox" data-confirm="${row.index}">原姓名“${esc(row.priorName)}”，确认使用“${esc(row.name)}”</label>` : '—'}</td></tr>`).join('')}</tbody></table></div><p id="import-status" class="help"></p><button class="primary" data-action="commit-import">确认导入有效行</button>`;
+    $('#import-result').innerHTML = `<p class="result-line">新增账号 ${counts.new} 人 · 已有账号 ${counts.existing} 人 · 已在班级 ${counts.member} 人 · 错误 ${counts.error} 行</p><p class="help">错误行会跳过。姓名不同的行需逐一确认；导入将仅更新本班名单姓名。</p><div class="table-wrap"><table><thead><tr><th>行</th><th>学号</th><th>姓名</th><th>检查结果</th><th>姓名确认</th></tr></thead><tbody>${preview.rows.map(row => `<tr><td>${row.index + 2}</td><td class="mono">${esc(row.studentNumber)}</td><td>${esc(row.name)}</td><td><span id="row-result-${row.index}" class="${row.status === 'error' ? 'error-text' : ''}">${esc(row.error || ({ new: '将新建学生账号', existing: '将加入本班，保留密码和进度', member: '已在班级，保留密码和进度' }[row.status]))}</span></td><td>${row.nameConflict ? `<label class="check"><input type="checkbox" data-confirm="${row.index}">原姓名“${esc(row.priorName)}”，确认使用“${esc(row.name)}”</label>` : '—'}</td></tr>`).join('')}</tbody></table></div>`;
     preview.succeeded = new Set();
+    const valid = preview.rows.length - counts.error;
+    $('#import-status').textContent = valid ? `预览完成，${valid} 名学生待确认。点击“确认导入”后才会加入班级。` : '没有可导入的学生，请修改错误行后重新选择文件。';
+    const button = dialog.querySelector('[data-action="commit-import"]');
+    button.textContent = valid ? `确认导入 ${valid} 名学生` : '没有有效行'; button.disabled = !valid;
+    $('#import-result').scrollIntoView({ block: 'start' });
   }
   async function commitImport() {
     if (!preview) return;
@@ -130,8 +142,9 @@
       }
     }
     const remaining = preview.rows.filter(row => row.status !== 'error' && !preview.succeeded.has(row.index)).length;
-    $('#import-status').textContent = `已成功导入 ${preview.succeeded.size} 人。${remaining ? `另有 ${remaining} 行未完成，可点击按钮重试。` : '关闭窗口后刷新班级名单即可查看。'}`;
-    const button = dialog.querySelector('[data-action="commit-import"]'); button.textContent = remaining ? '重试未完成的行' : '导入完成'; button.disabled = !remaining;
+    $('#import-status').textContent = `已成功导入 ${preview.succeeded.size} 人。${remaining ? `另有 ${remaining} 行未完成，可点击按钮重试。` : '班级名单已更新。'}`;
+    const button = dialog.querySelector('[data-action="commit-import"]'); button.textContent = remaining ? '重试未完成的行' : '完成，查看班级';
+    if (!remaining) button.dataset.action = 'close';
     await selectClass(selected.id);
   }
   function download(content, filename, type) {
@@ -170,9 +183,11 @@
         if (!window.XLSX) throw new Error('Excel 组件未加载，请刷新或使用 CSV。');
         XLSX.writeFile(DcdvRoster.template(XLSX), '学生名单模板.xlsx');
       } else if (action === 'preview') {
-        preview = null; $('#import-result').replaceChildren();
-        const rows = await DcdvRoster.readFile($('#roster-file').files[0], window.XLSX);
-        preview = await api(`classes/${selected.id}/import/preview`, { rows }); renderPreview();
+        resetImportPreview('正在检查名单，请稍候…');
+        try {
+          const rows = await DcdvRoster.readFile($('#roster-file').files[0], window.XLSX);
+          preview = await api(`classes/${selected.id}/import/preview`, { rows }); renderPreview();
+        } catch (cause) { $('#import-status').textContent = '预览未完成，请按错误提示处理后重试。'; throw cause; }
       } else if (action === 'commit-import') await commitImport();
       else if (action === 'add-teacher') modal('开通老师账号', '<form id="teacher-form"><label>开通方式<select name="mode"><option value="new">创建新老师账号</option><option value="existing">给已有账号授予老师权限</option></select></label><label>账号<input name="username" minlength="2" maxlength="24" autocomplete="off" required></label><label>老师姓名（用于新账号）<input name="displayName" maxlength="40" required></label><p class="help">新账号生成随机临时密码，首次登录须修改。已有账号保留密码、资料与进度。</p><button class="primary" type="submit">开通老师权限</button></form>');
       else if (action === 'reset-teacher') {
@@ -207,7 +222,10 @@
     });
   });
   document.addEventListener('input', event => { if (event.target.id === 'search') { currentPage = 1; renderStudents(); } });
-  document.addEventListener('change', event => { if (event.target.id === 'sort') { currentPage = 1; renderStudents(); } });
+  document.addEventListener('change', event => {
+    if (event.target.id === 'sort') { currentPage = 1; renderStudents(); }
+    if (event.target.id === 'roster-file' && !busy) resetImportPreview();
+  });
   dialog.addEventListener('cancel', event => { if (busy) event.preventDefault(); if (pendingConfirmation) finishConfirmation(false); });
   dialog.addEventListener('close', () => { if (pendingConfirmation) finishConfirmation(false); if (!busy) { $('#dialog-content').replaceChildren(); preview = null; } });
   window.addEventListener('beforeunload', event => { if (busy && preview) { event.preventDefault(); event.returnValue = ''; } });
