@@ -1,6 +1,6 @@
 {
   "status": "test-deployed-production-domain-pending",
-  "verifiedAt": "2026-11-09T03:41:09.747Z",
+  "verifiedAt": "2026-11-09T04:29:29.164Z",
   "region": "cn-hangzhou",
   "instanceName": "dcdv-accounts",
   "instanceType": "CU-capacity",
