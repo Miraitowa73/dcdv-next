@@ -5,6 +5,24 @@ const proto = require('../cloud-account/node_modules/tablestore/lib/protocol/tab
 const { createTableStore } = require('../cloud-account/store');
 const { randomUUID } = require('node:crypto');
 
+test('range reads use bounded key prefixes, decode cursor wire format and project summaries', async () => {
+  const requests = []; const revision = randomUUID();
+  const value = { classId: 'example' }, summary = { completed: 1, total: 39 };
+  const row = SDK.PlainBufferBuilder.serializeForPutRow([{ key: 'owner:abc:one' }], [{ payload: JSON.stringify(value) }, { revision }]);
+  const next = SDK.PlainBufferBuilder.serializePrimaryKey([{ key: 'owner:abc:two' }]);
+  const wire = proto.GetRangeResponse.encode({ consumed: { capacityUnit: { read: 1, write: 0 } }, rows: row, nextStartPrimaryKey: next }).finish();
+  class Client extends SDK.Client {
+    getRange(params, callback) { requests.push(params); callback(null, SDK.decoder.decode('getRange', Buffer.from(wire))); }
+    getRow(params, callback) { requests.push(params); callback(null, { row: { primaryKey: [{ name: 'key', value: 'abc' }], attributes: [{ columnName: 'summary', columnValue: JSON.stringify(summary) }] } }); }
+  }
+  const store = createTableStore({ credentials: { accessKeyId: 'test', accessKeySecret: 'test', securityToken: 'test' }, endpoint: 'https://test.cn-hangzhou.tablestore.aliyuncs.com', instanceName: 'test' }, { ...SDK, Client });
+  const result = await store.scan('classes', 'owner:abc:', null, 50);
+  assert.deepEqual(result.rows, [{ key: 'owner:abc:one', value, version: revision }]);
+  assert.equal(result.cursor, 'owner:abc:two'); assert.equal(requests[0].limit, 50);
+  assert.deepEqual(await store.summary('abc'), summary); assert.deepEqual(requests[1].columnsToGet, ['summary']);
+  await assert.rejects(store.scan('classes', 'owner:abc:', 'owner:another:'), /cursor/);
+});
+
 test('Tablestore adapter encodes conditional writes and decodes real SDK row wire data', async () => {
   const requests = [];
   const revision = randomUUID();

@@ -31,10 +31,11 @@
     "test_frontend_url": "https://miraitowa73.github.io/dcdv-next/cloud-test/",
     "test_frontend_enabled": true,
     "test_frontend_approved_on": "2026-11-09",
-    "verified_at": "2026-10-10T13:02:46.973Z",
-    "regression_tests_passed": 78,
-    "cloud_smoke_checks_passed": 11,
+    "verified_at": "2026-11-09T03:41:09.747Z",
+    "regression_tests_passed": 92,
+    "cloud_smoke_checks_passed": 13,
     "budget_alerts_configured": false,
-    "deployment_zip_sha256": "e9a45ab975a477df963fb67a5541ab793200c1d2ec416dd233eba03f4d651e54"
+    "deployment_zip_sha256": "b439cd101570da07d8172a25f8fa01329cb7ea73a40e7c3e4b1820adc3ece4b9",
+    "classroom_status": "backend-deployed-frontend-and-admin-pending"
   }
 }

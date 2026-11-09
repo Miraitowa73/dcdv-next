@@ -1,30 +1,12 @@
 'use strict';
 
-const { randomBytes, randomUUID, scrypt: scryptCallback, timingSafeEqual, createHash } = require('node:crypto');
-const { promisify } = require('node:util');
-const scrypt = promisify(scryptCallback);
+const { randomBytes, randomUUID, createHash } = require('node:crypto');
+const { ApiError, fail, username, password, studentNumber, publicUser, newUser, passwordFields, verifyPassword } = require('./identity');
+const { summarize } = require('./progress-summary');
+const { createClassroom } = require('./classroom');
 const MAX_PROGRESS_BYTES = 1024 * 1024;
 const SESSION_MS = 24 * 60 * 60 * 1000;
-const PASSWORD_OPTIONS = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
-let hashing = 0;
 const digest = value => createHash('sha256').update(value).digest('hex');
-class ApiError extends Error {
-  constructor(status, code, message) { super(message); Object.assign(this, { status, code }); }
-}
-const fail = (status, code, message) => { throw new ApiError(status, code, message); };
-
-function credentials(body) {
-  if (typeof body.username !== 'string' || typeof body.password !== 'string') {
-    fail(400, 'INVALID_CREDENTIALS', '请填写用户名和密码。');
-  }
-  const username = body.username.trim().normalize('NFKC');
-  if (Array.from(username).length < 2 || Array.from(username).length > 24 || !/^[\p{L}\p{N}_-]+$/u.test(username)) {
-    fail(400, 'INVALID_USERNAME', '用户名需为 2–24 个文字、字母、数字、下划线或中划线。');
-  }
-  const length = Array.from(body.password).length;
-  if (length < 8 || length > 72) fail(400, 'INVALID_PASSWORD', '密码长度需为 8–72 个字符。');
-  return { username, usernameKey: username.toLocaleLowerCase('zh-CN'), password: body.password };
-}
 
 function validateProgress(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) fail(400, 'INVALID_PROGRESS', '进度内容无效。');
@@ -50,19 +32,9 @@ function validateProgress(state) {
   return state;
 }
 
-function publicUser(user) {
-  return { id: user.id, username: user.username, createdAt: user.createdAt };
-}
-
 // The store must provide durable, atomic compare-and-set. There is no file/memory fallback in production.
 function createAccountService({ store, allowedOrigins = ['https://miraitowa73.github.io'], now = Date.now, sessionMs = SESSION_MS, limits = {} }) {
   if (!store) throw new Error('A durable account store is required');
-  async function hash(password, salt) {
-    if (hashing >= 2) fail(503, 'BUSY', '登录服务繁忙，请稍后重试。');
-    hashing++;
-    try { return await scrypt(password, salt, 32, PASSWORD_OPTIONS); }
-    finally { hashing--; }
-  }
   async function rateLimit(scope, identity, max, windowMs) {
     max = limits[scope] ?? max;
     const bucket = Math.floor(now() / windowMs);
@@ -86,12 +58,15 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
   async function issueSession(user) {
     const token = randomBytes(32).toString('base64url');
     const expiresAt = now() + sessionMs;
-    if (!await store.put('ephemeral', `session:${digest(token)}`, { userId: user.id, usernameKey: user.usernameKey, expiresAt }, null)) {
+    if (!await store.put('ephemeral', `session:${digest(token)}`, { userId: user.id, usernameKey: user.usernameKey, authVersion: user.authVersion || 0, expiresAt }, null)) {
       fail(503, 'BUSY', '登录服务繁忙，请重试。');
     }
     return { user: publicUser(user), token, expiresAt };
   }
+  const classroom = createClassroom({ store, now, rateLimit });
   return async function handle({ method, path, headers = {}, body = '', sourceIp = 'unknown' }) {
+    const parsedUrl = new URL(path, 'https://account.invalid');
+    path = parsedUrl.pathname;
     headers = Object.fromEntries(Object.entries(headers).map(([key, value]) => [key.toLowerCase(), String(value)]));
     const origin = headers.origin;
     const responseHeaders = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', Vary: 'Origin' };
@@ -107,7 +82,7 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
       }
       if (method === 'GET' && path === '/api/account/health') {
         await store.get('users', '__health__');
-        return result(200, { ok: true, service: 'dcdv-cloud-account', storage: 'tablestore', version: 1 });
+        return result(200, { ok: true, service: 'dcdv-cloud-account', storage: 'tablestore', version: 2 });
       }
       if (Buffer.byteLength(body) > MAX_PROGRESS_BYTES + 4096) fail(413, 'BODY_TOO_LARGE', '请求内容过大。');
       let data = {};
@@ -117,25 +92,24 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
         if (!data || typeof data !== 'object' || Array.isArray(data)) fail(400, 'INVALID_JSON', '请求格式无效。');
       }
       if (method === 'POST' && ['/api/account/register', '/api/account/login'].includes(path)) {
-        const { username, usernameKey, password } = credentials(data);
+        const name = username(data.username);
+        const usernameKey = name.toLocaleLowerCase('zh-CN');
+        const secret = password(data.password, path.endsWith('/login') ? 6 : 8);
         await rateLimit('auth-ip', sourceIp, 120, 10 * 60 * 1000);
         await rateLimit('auth-name', usernameKey, 20, 10 * 60 * 1000);
         if (path.endsWith('/register')) {
           await rateLimit('register-ip', sourceIp, 30, 60 * 60 * 1000);
           await rateLimit('register-global', 'all', 1000, 24 * 60 * 60 * 1000);
           const initialProgress = data.progress === undefined ? null : validateProgress(data.progress);
-          const salt = randomBytes(16).toString('base64');
-          const passwordHash = (await hash(password, salt)).toString('base64');
-          const user = { id: randomUUID(), username, usernameKey, salt, passwordHash, passwordAlgorithm: 'scrypt-N32768-r8-p1', createdAt: new Date(now()).toISOString(), initialProgress };
+          const number = studentNumber(name);
+          const user = await newUser(name, secret, { initialProgress, studentNumber: number }, now);
           // Initial migrated progress lives atomically with the new user until the first save.
           if (!await store.put('users', usernameKey, user, null)) fail(409, 'USERNAME_TAKEN', '云端已有同名账号，请直接登录，或换一个云端用户名后迁移。');
           return result(201, await issueSession(user));
         }
         const record = await store.get('users', usernameKey);
-        const salt = record?.value.salt || 'dcdv-dummy-salt-not-a-real-account';
-        const candidate = await hash(password, salt);
-        const expected = record ? Buffer.from(record.value.passwordHash, 'base64') : Buffer.alloc(32);
-        if (!record || expected.length !== candidate.length || !timingSafeEqual(candidate, expected)) fail(401, 'BAD_CREDENTIALS', '用户名或密码错误。');
+        const valid = await verifyPassword(record?.value, secret);
+        if (!valid || (!record.value.mustChangePassword && Array.from(secret).length < 8)) fail(401, 'BAD_CREDENTIALS', '用户名或密码错误。');
         return result(200, await issueSession(record.value));
       }
       const session = await sessionFor(headers);
@@ -145,7 +119,19 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
       }
       const account = await store.get('users', session.usernameKey);
       if (!account || account.value.id !== session.userId) fail(401, 'UNAUTHORIZED', '账号已失效，请重新登录。');
+      if ((account.value.authVersion || 0) !== (session.authVersion || 0)) fail(401, 'UNAUTHORIZED', '密码已更改，请重新登录。');
       if (method === 'GET' && path === '/api/account/me') return result(200, { user: publicUser(account.value), expiresAt: session.expiresAt });
+      if (method === 'POST' && path === '/api/account/change-password') {
+        await rateLimit('password-change', session.userId, 10, 600000);
+        const oldPassword = password(data.currentPassword, 6);
+        const nextPassword = password(data.newPassword);
+        if (!await verifyPassword(account.value, oldPassword)) fail(400, 'BAD_CREDENTIALS', '当前密码不正确。');
+        if (oldPassword === nextPassword) fail(400, 'PASSWORD_UNCHANGED', '请设置不同的新密码。');
+        const value = { ...account.value, ...await passwordFields(nextPassword), mustChangePassword: false, authVersion: (account.value.authVersion || 0) + 1 };
+        if (!await store.put('users', session.usernameKey, value, account.version)) fail(409, 'CONFLICT', '账号已改变，请重试。');
+        return result(200, await issueSession(value));
+      }
+      if (account.value.mustChangePassword) fail(403, 'PASSWORD_CHANGE_REQUIRED', '首次登录请先修改临时密码。');
       if (method === 'GET' && path === '/api/account/progress') {
         const record = await store.get('progress', session.userId);
         return result(200, { state: record ? record.value.state : account.value.initialProgress, revision: record?.version ?? null, updatedAt: record?.value.updatedAt ?? null });
@@ -156,7 +142,7 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
         const state = validateProgress(data.state);
         const revision = randomUUID();
         const updatedAt = new Date(now()).toISOString();
-        if (!await store.put('progress', session.userId, { state, updatedAt }, data.revision, revision)) fail(409, 'PROGRESS_CONFLICT', '另一台设备已更新进度。本页内容尚未覆盖云端，请先导出本页备份，再载入云端进度。');
+        if (!await store.put('progress', session.userId, { state, updatedAt, summary: summarize(state, updatedAt) }, data.revision, revision)) fail(409, 'PROGRESS_CONFLICT', '另一台设备已更新进度。本页内容尚未覆盖云端，请先导出本页备份，再载入云端进度。');
         if (account.value.initialProgress) {
           // The durable progress row now owns the draft. Avoid reading the potentially
           // large migration copy on every future login/save. Cleanup is best-effort:
@@ -167,6 +153,8 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
         }
         return result(200, { revision, updatedAt });
       }
+      const classResult = await classroom({ path, method, data, user: account.value, query: parsedUrl.searchParams });
+      if (classResult !== null) return result(200, classResult);
       fail(404, 'NOT_FOUND', '接口不存在。');
     } catch (error) {
       if (error instanceof ApiError) {

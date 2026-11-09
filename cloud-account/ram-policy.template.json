@@ -7,7 +7,17 @@
       "Resource": [
         "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_users",
         "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_progress",
-        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_ephemeral"
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_ephemeral",
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_classes",
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_class_members"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["ots:GetRange"],
+      "Resource": [
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_classes",
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_class_members"
       ]
     },
     {

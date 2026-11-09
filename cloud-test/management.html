@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <title>DCDV · 班级与账号</title>
+  <link rel="stylesheet" href="./management.css">
+  <script src="./auth-local.js"></script><script src="./account-config.js"></script><script src="../auth-cloud.js"></script>
+  <script src="./vendor/xlsx.full.min.js" defer></script><script src="./roster.js" defer></script><script src="./management.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="./?learn=1"><span class="brand-mark">D</span> DCDV <span class="brand-sub">教学空间</span></a><span class="test-tag">云端测试版</span><div class="top-actions"><span id="identity"></span><a href="./?learn=1">进入学习</a><button data-action="password" id="password-action" hidden>修改密码</button><button data-action="logout" id="logout-action" hidden>退出</button></div></header>
+  <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+  <div class="layout"><aside id="sidebar"><p class="eyebrow">账号与班级</p><h2 id="nav-title">正在连接云端…</h2><nav id="class-nav" aria-label="班级列表"></nav><button data-action="create-class" id="create-class" class="primary full" hidden>＋ 创建班级</button><p class="side-note">学习进度跨设备同步。<br>同一学生在各班共用进度。</p></aside><main id="content" aria-live="polite"><div class="empty">正在读取账号…</div></main></div>
+  <dialog id="dialog"><div id="dialog-content"></div></dialog>
+</body></html>

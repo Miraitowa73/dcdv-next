@@ -28,7 +28,7 @@ test('cloud registration salts hashes, stores only token digests, and exposes on
   const stored = JSON.stringify([...store.rows]);
   assert.ok(!stored.includes('student-test-password'));
   assert.ok(!stored.includes(a.data.token));
-  assert.deepEqual(Object.keys(a.data.user).sort(), ['createdAt', 'id', 'username']);
+  assert.deepEqual(Object.keys(a.data.user).sort(), ['createdAt', 'displayName', 'id', 'mustChangePassword', 'role', 'studentNumber', 'username']);
   const me = await call('me', undefined, a.data.token);
   assert.equal(me.data.user.id, ua.id);
   assert.ok(!me.body.includes('password'));
@@ -36,9 +36,9 @@ test('cloud registration salts hashes, stores only token digests, and exposes on
 
 test('normalized names are unique even for simultaneous registrations', async () => {
   const { register, call } = fixture();
-  const results = await Promise.all([register('Ａlice'), register('alice')]);
+  const results = await Promise.all([register('Ａlice01'), register('alice01')]);
   assert.deepEqual(results.map(r => r.statusCode).sort(), [201, 409]);
-  const login = await call('login', { username: 'ALICE', password: 'student-test-password' });
+  const login = await call('login', { username: 'ALICE01', password: 'student-test-password' });
   assert.equal(login.statusCode, 200);
 });
 

@@ -1,0 +1,197 @@
+[
+  {
+    "key": "stairs:truth",
+    "group": "楼梯灯双控开关",
+    "title": "填写真值表"
+  },
+  {
+    "key": "stairs:expr",
+    "group": "楼梯灯双控开关",
+    "title": "推导逻辑表达式"
+  },
+  {
+    "key": "stairs:gates",
+    "group": "楼梯灯双控开关",
+    "title": "搭建逻辑门电路"
+  },
+  {
+    "key": "voter:truth3",
+    "group": "投票表决器",
+    "title": "三人多数表决真值表"
+  },
+  {
+    "key": "voter:gates3",
+    "group": "投票表决器",
+    "title": "搭建三人表决器"
+  },
+  {
+    "key": "voter:truth4",
+    "group": "投票表决器",
+    "title": "扩展四人多数表决"
+  },
+  {
+    "key": "voter:chair",
+    "group": "投票表决器",
+    "title": "加入主席权重"
+  },
+  {
+    "key": "decoder:floor-code",
+    "group": "电梯楼层译码器",
+    "title": "认识 2 位楼层编号"
+  },
+  {
+    "key": "decoder:dec24",
+    "group": "电梯楼层译码器",
+    "title": "搭建 2-4 译码器"
+  },
+  {
+    "key": "decoder:dec-enable",
+    "group": "电梯楼层译码器",
+    "title": "加入使能端"
+  },
+  {
+    "key": "decoder:seg-floor",
+    "group": "电梯楼层译码器",
+    "title": "楼层编号接数码管"
+  },
+  {
+    "key": "lock:one-bit",
+    "group": "保险箱密码锁",
+    "title": "单位密码位比较"
+  },
+  {
+    "key": "lock:equal4",
+    "group": "保险箱密码锁",
+    "title": "组合 4 位密码比较"
+  },
+  {
+    "key": "lock:enable",
+    "group": "保险箱密码锁",
+    "title": "加启用开关"
+  },
+  {
+    "key": "lock:alarm",
+    "group": "保险箱密码锁",
+    "title": "加入报警输出"
+  },
+  {
+    "key": "segment:segments",
+    "group": "数码管信息牌",
+    "title": "认识七段数码管"
+  },
+  {
+    "key": "segment:digit0",
+    "group": "数码管信息牌",
+    "title": "用门电路显示数字 0"
+  },
+  {
+    "key": "segment:bcd-9",
+    "group": "数码管信息牌",
+    "title": "BCD 到 0-9 段码"
+  },
+  {
+    "key": "segment:two-digit",
+    "group": "数码管信息牌",
+    "title": "两位显示接口"
+  },
+  {
+    "key": "register:rs",
+    "group": "触发器与寄存器工坊",
+    "title": "RS 锁存逻辑"
+  },
+  {
+    "key": "register:dff",
+    "group": "触发器与寄存器工坊",
+    "title": "D 触发器保存 1 位"
+  },
+  {
+    "key": "register:reg4",
+    "group": "触发器与寄存器工坊",
+    "title": "4 位寄存器"
+  },
+  {
+    "key": "register:shift",
+    "group": "触发器与寄存器工坊",
+    "title": "移位寄存器观察数据移动"
+  },
+  {
+    "key": "counter:toggle",
+    "group": "计数时钟塔",
+    "title": "1 位翻转节拍"
+  },
+  {
+    "key": "counter:count2",
+    "group": "计数时钟塔",
+    "title": "2 位同步计数器"
+  },
+  {
+    "key": "counter:ring",
+    "group": "计数时钟塔",
+    "title": "环形计数器驱动 LED"
+  },
+  {
+    "key": "counter:divider",
+    "group": "计数时钟塔",
+    "title": "加分频 tick 输出"
+  },
+  {
+    "key": "quiz:priority",
+    "group": "智力竞赛抢答器",
+    "title": "四路输入优先判断"
+  },
+  {
+    "key": "quiz:lock-first",
+    "group": "智力竞赛抢答器",
+    "title": "锁存最先抢答者"
+  },
+  {
+    "key": "quiz:reset",
+    "group": "智力竞赛抢答器",
+    "title": "复位清除锁存"
+  },
+  {
+    "key": "quiz:score",
+    "group": "智力竞赛抢答器",
+    "title": "加减分显示"
+  },
+  {
+    "key": "accumulator:half-adder",
+    "group": "串行累加计算器",
+    "title": "半加器"
+  },
+  {
+    "key": "accumulator:full-adder",
+    "group": "串行累加计算器",
+    "title": "全加器"
+  },
+  {
+    "key": "accumulator:carry-save",
+    "group": "串行累加计算器",
+    "title": "保存进位和部分和"
+  },
+  {
+    "key": "accumulator:serial4",
+    "group": "串行累加计算器",
+    "title": "4 位串行累加"
+  },
+  {
+    "key": "elevator:two-floor",
+    "group": "电梯控制器 FSM",
+    "title": "两层电梯状态图"
+  },
+  {
+    "key": "elevator:direction",
+    "group": "电梯控制器 FSM",
+    "title": "加入上/下行方向"
+  },
+  {
+    "key": "elevator:door-hold",
+    "group": "电梯控制器 FSM",
+    "title": "开门保持计数"
+  },
+  {
+    "key": "elevator:four-floor",
+    "group": "电梯控制器 FSM",
+    "title": "四层简化控制器"
+  }
+]

@@ -1,6 +1,6 @@
 {
   "status": "test-deployed-production-domain-pending",
-  "verifiedAt": "2026-10-10T13:02:46.973Z",
+  "verifiedAt": "2026-11-09T03:41:09.747Z",
   "region": "cn-hangzhou",
   "instanceName": "dcdv-accounts",
   "instanceType": "CU-capacity",
@@ -11,7 +11,10 @@
     "hardCapRequired": false,
     "paidActivationAllowed": true,
     "termsAndRoleApproval": "user-approved-2026-10-10",
-    "alertThresholdsCny": [5, 8],
+    "alertThresholdsCny": [
+      5,
+      8
+    ],
     "alertsConfigured": false,
     "alertBlocker": "Aliyun budget console remains on its loading skeleton after navigation and reload; no budget or alert was saved."
   },
@@ -30,25 +33,73 @@
     "policyName": "DCDVNextAccountTables",
     "logStorageEnabled": false,
     "tracingEnabled": false,
-    "httpMethods": ["GET", "POST", "PUT", "OPTIONS"],
+    "httpMethods": [
+      "GET",
+      "POST",
+      "PUT",
+      "OPTIONS"
+    ],
     "environment": {
       "DCDV_TABLESTORE_INSTANCE": "dcdv-accounts",
       "DCDV_TABLESTORE_ENDPOINT": "https://dcdv-accounts.cn-hangzhou.tablestore.aliyuncs.com",
       "DCDV_TABLE_PREFIX": "dcdv_",
       "DCDV_ACCOUNT_ORIGINS": "https://miraitowa73.github.io"
-    }
+    },
+    "policyVersion": "v2"
   },
   "tables": [
-    { "name": "dcdv_users", "primaryKey": { "name": "key", "type": "STRING" }, "timeToLive": -1, "maxVersions": 1 },
-    { "name": "dcdv_progress", "primaryKey": { "name": "key", "type": "STRING" }, "timeToLive": -1, "maxVersions": 1 },
-    { "name": "dcdv_ephemeral", "primaryKey": { "name": "key", "type": "STRING" }, "timeToLive": 604800, "maxVersions": 1 }
+    {
+      "name": "dcdv_users",
+      "primaryKey": {
+        "name": "key",
+        "type": "STRING"
+      },
+      "timeToLive": -1,
+      "maxVersions": 1
+    },
+    {
+      "name": "dcdv_progress",
+      "primaryKey": {
+        "name": "key",
+        "type": "STRING"
+      },
+      "timeToLive": -1,
+      "maxVersions": 1
+    },
+    {
+      "name": "dcdv_ephemeral",
+      "primaryKey": {
+        "name": "key",
+        "type": "STRING"
+      },
+      "timeToLive": 604800,
+      "maxVersions": 1
+    },
+    {
+      "name": "dcdv_classes",
+      "primaryKey": {
+        "type": "STRING",
+        "name": "key"
+      },
+      "timeToLive": -1,
+      "maxVersions": 1
+    },
+    {
+      "name": "dcdv_class_members",
+      "primaryKey": {
+        "type": "STRING",
+        "name": "key"
+      },
+      "timeToLive": -1,
+      "maxVersions": 1
+    }
   ],
   "tableReservedReadCU": 0,
   "tableReservedWriteCU": 0,
   "indexes": [],
   "testApiOrigin": "https://dcdv-ne-account-mswdnmdfrd.cn-hangzhou.fcapp.run",
   "testFrontendUrl": "https://miraitowa73.github.io/dcdv-next/cloud-test/",
-  "deploymentZipSha256": "e9a45ab975a477df963fb67a5541ab793200c1d2ec416dd233eba03f4d651e54",
+  "deploymentZipSha256": "b439cd101570da07d8172a25f8fa01329cb7ea73a40e7c3e4b1820adc3ece4b9",
   "productionDomainStatus": "User has no domain and requested test deployment only on 2026-10-10.",
   "accountApiOrigin": null
 }

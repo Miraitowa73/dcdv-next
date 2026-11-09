@@ -222,6 +222,22 @@ The adapter decodes its protobuf Error envelope on its own client, preserving
 CAS conflicts without treating permission/gateway errors as conflicts. Wire
 regression and real cloud stale-write verification both pass.
 
+## Classroom test release (2026-11-09)
+
+The cloud test account service now supports admin/teacher/student roles, forced
+first password changes, roster imports and per-class progress views. See
+[cloud-account/CLASSROOM.md](cloud-account/CLASSROOM.md) for usage, schema,
+one-time RAM-protected administrator setup and rollback. The existing compiler
+and original `DCDV.html` remain unchanged. Backend ZIP and table details are
+recorded in `cloud-account/resources.json`; frontend/admin rollout status is
+recorded in `deployment-record.json`.
+
+Validation: 92 regression tests passed with Node 24 and Icarus, and 13 checks
+passed against the deployed FC/Tablestore service on 2026-11-09. Local browser
+verification completed the admin → teacher → imported student → progress view
+workflow. This release keeps the existing zero-minimum-instance and zero-reserved
+CU settings; it adds two tables within the existing instance.
+
 ## Required FC environment variables
 
 ```text

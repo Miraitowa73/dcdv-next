@@ -6,7 +6,7 @@ const { randomBytes } = require('node:crypto');
 const base = process.argv[2];
 if (!base || !base.startsWith('https://')) throw new Error('Pass the deployed HTTPS account origin.');
 const origin = 'https://miraitowa73.github.io';
-const username = `smoke_${Date.now()}`;
+const username = `smoke${Date.now()}`;
 const password = randomBytes(24).toString('base64url');
 const checks = [];
 async function request(path, method = 'GET', data, token, extra = {}) {
@@ -28,6 +28,11 @@ async function request(path, method = 'GET', data, token, extra = {}) {
   const created = await request('register', 'POST', { username, password, progress: initial });
   assert.equal(created.status, 201, JSON.stringify(created.data));
   const tokenA = created.data.token; checks.push('register-with-migrated-progress');
+  assert.equal(created.data.user.role, 'student');
+  assert.equal((await request('admin/teachers', 'GET', undefined, tokenA)).status, 403);
+  assert.equal((await request('classes', 'GET', undefined, tokenA)).status, 403); checks.push('student-management-denied');
+  const membership = await request('my-classes', 'GET', undefined, tokenA);
+  assert.equal(membership.status, 200, JSON.stringify(membership.data)); assert.deepEqual(membership.data.classes, []); checks.push('class-members-range-permission');
   assert.deepEqual((await request('progress', 'GET', undefined, tokenA)).data.state, initial);
   const login = await request('login', 'POST', { username, password });
   assert.equal(login.status, 200, JSON.stringify(login.data));

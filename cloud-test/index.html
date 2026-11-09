@@ -2611,8 +2611,8 @@
                         </div>
                         <div id="auth-migration-fields" class="hidden">
                             <div class="auth-field">
-                                <label for="auth-cloud-username">云端用户名（留空则沿用原用户名）</label>
-                                <input id="auth-cloud-username" type="text" maxlength="24" autocomplete="off" placeholder="同名账号已被注册时，可换一个名字">
+                                <label for="auth-cloud-username">云端学号（原账号不是学号时请填写）</label>
+                                <input id="auth-cloud-username" type="text" maxlength="24" autocomplete="off" placeholder="6–24 位数字或字母，保留开头的 0">
                             </div>
                             <label class="flex items-start gap-2 mb-4 text-xs leading-relaxed text-slate-400">
                                 <input id="auth-remove-local" type="checkbox" class="mt-1">
@@ -2686,6 +2686,7 @@
                         <div id="account-sync-status" class="mt-2 text-xs text-slate-400" role="status" aria-live="polite"></div>
                     </div>
                     <div id="account-cloud-actions" class="hidden">
+                        <button type="button" class="account-menu-action" role="menuitem" onclick="openAccountManagement()">我的班级 / 账号管理</button>
                         <button type="button" class="account-menu-action" role="menuitem" onclick="retryCloudProgressSave()">重试同步本页进度</button>
                         <button type="button" class="account-menu-action" role="menuitem" onclick="reloadCloudProgress()">载入云端最新进度</button>
                     </div>
@@ -5809,7 +5810,9 @@
             confirmField?.classList.toggle('hidden', !isRegister);
             document.getElementById('auth-migration-fields')?.classList.toggle('hidden', !isMigrate);
             document.getElementById('auth-cloud-note')?.classList.toggle('hidden', !window.DcdvAuth?.isCloud);
-            document.getElementById('auth-username-label').textContent = isMigrate ? '原本机用户名' : '用户名';
+            document.getElementById('auth-username-label').textContent = isMigrate ? '原本机用户名' : (isRegister ? '学号（学生账号）' : '学号 / 账号');
+            document.getElementById('auth-username').placeholder = isRegister ? '6–24 位数字或字母，保留开头的 0' : '输入学号或已有账号';
+            if (passwordInput) { passwordInput.minLength = isRegister ? 8 : 6; passwordInput.placeholder = isRegister ? '8–72 个字符' : '输入密码或老师提供的临时密码'; }
             if (confirmInput) {
                 confirmInput.required = isRegister;
                 if (!isRegister) confirmInput.value = '';
@@ -5817,6 +5820,7 @@
             if (passwordInput) passwordInput.autocomplete = isRegister ? 'new-password' : 'current-password';
             if (submit) submit.textContent = isMigrate ? '验证并迁移到云端' : (isRegister ? '创建用户并进入' : '登录并继续');
             setAuthMessage('');
+            if (isRegister) setAuthMessage('学生可自行注册；老师账号由管理员开通。若老师已导入你的学号，请直接登录，初始密码为学号后六位。');
             if (isMigrate) setAuthMessage('请在原来注册账号的浏览器操作。原密码将用于新的云端账号，旧密码哈希不会上传。');
         }
 
@@ -5882,6 +5886,10 @@
         }
 
         async function activateDcdvUser(user) {
+            if (user.mustChangePassword || (['teacher', 'admin'].includes(user.role) && new URLSearchParams(location.search).get('learn') !== '1')) {
+                location.assign('./management.html');
+                return;
+            }
             currentDcdvUser = user;
             let progress;
             try { progress = await loadChallengeProgress(); }
@@ -5910,8 +5918,12 @@
             const username = document.getElementById('auth-username')?.value || '';
             const password = document.getElementById('auth-password')?.value || '';
             const confirmation = document.getElementById('auth-password-confirm')?.value || '';
-            const usernameCheck = window.DcdvAuth.validateUsername(username);
-            const passwordCheck = window.DcdvAuth.validatePassword(password);
+            const usernameCheck = currentAuthMode === 'register'
+                ? { ok: /^[A-Za-z0-9]{6,24}$/.test(username.trim().normalize('NFKC')), value: username.trim().normalize('NFKC'), message: '学号需为 6–24 位数字或字母，请保留开头的 0。' }
+                : window.DcdvAuth.validateUsername(username);
+            const passwordCheck = currentAuthMode === 'login'
+                ? { ok: Array.from(password).length >= 6 && Array.from(password).length <= 72, message: '请填写密码；老师导入的临时密码为学号后六位。' }
+                : window.DcdvAuth.validatePassword(password);
             if (!usernameCheck.ok) {
                 setAuthMessage(usernameCheck.message, 'error');
                 document.getElementById('auth-username')?.focus();
@@ -5996,6 +6008,11 @@
 
         async function logoutDcdvUser() {
             await leaveCurrentDcdvSession('已退出登录。');
+        }
+
+        async function openAccountManagement() {
+            if (!await flushChallengeProgress()) { showToast('请先重试同步或导出本页进度，再进入账号管理。', 'error'); return; }
+            location.assign('./management.html');
         }
 
         async function switchDcdvAccount() {

@@ -49,8 +49,7 @@
         throw error(cause.name === 'AbortError' ? '云端连接超时，本页未保存的进度仍保留在页面中。' : '无法连接云端账号服务，请检查网络后重试。', 'NETWORK_ERROR');
       } finally { clearTimeout(timer); }
     }
-    async function signIn(path, username, password, progress) {
-      const payload = await request(path, { method: 'POST', authenticated: false, data: { username, password, ...(progress === undefined ? {} : { progress }) } });
+    function acceptSession(payload) {
       if (!payload.user?.id || !/^[A-Za-z0-9_-]{43}$/.test(payload.token || '')) throw error('登录响应无效。', 'INVALID_RESPONSE');
       generation++;
       token = payload.token;
@@ -60,11 +59,16 @@
       storage?.setItem(SESSION_KEY, token);
       return user;
     }
+    async function signIn(path, username, password, progress) {
+      return acceptSession(await request(path, { method: 'POST', authenticated: false, data: { username, password, ...(progress === undefined ? {} : { progress }) } }));
+    }
     function assertUser(userId) {
       if (!user || user.id !== userId) throw error('账号会话已改变，请重新登录。', 'SESSION_CHANGED');
     }
     return {
       isCloud: true,
+      request,
+      changePassword: async (currentPassword, newPassword) => acceptSession(await request('change-password', { method: 'POST', data: { currentPassword, newPassword } })),
       SESSION_KEY,
       validateUsername: utils.validateUsername,
       validatePassword: utils.validatePassword,

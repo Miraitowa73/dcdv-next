@@ -7,7 +7,7 @@ import zipfile
 root = Path(__file__).resolve().parents[1]
 source = root / "cloud-account"
 output = root / "runtime" / "dcdv-next-account.zip"
-entries = [source / name for name in ("index.js", "service.js", "store.js", "package.json", "package-lock.json")]
+entries = [source / name for name in ("index.js", "service.js", "store.js", "identity.js", "classroom.js", "progress-summary.js", "catalog.json", "bootstrap.js", "package.json", "package-lock.json")]
 dependency_root = source / "node_modules"
 if not dependency_root.is_dir():
     raise SystemExit("Run npm ci --prefix cloud-account --ignore-scripts first")
