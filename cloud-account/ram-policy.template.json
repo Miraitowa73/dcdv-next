@@ -1,0 +1,19 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["ots:GetRow", "ots:PutRow"],
+      "Resource": [
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_users",
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_progress",
+        "acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_ephemeral"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["ots:DeleteRow"],
+      "Resource": ["acs:ots:cn-hangzhou:<ACCOUNT_ID>:instance/dcdv-accounts/table/dcdv_ephemeral"]
+    }
+  ]
+}

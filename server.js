@@ -158,8 +158,15 @@ function resolvePublicStaticPath(projectRoot, pathname) {
     return path.join(projectRoot, 'DCDV.html');
   }
 
-  if (pathname === '/auth-local.js') {
-    return path.join(projectRoot, 'auth-local.js');
+  if (['/auth-local.js', '/auth-cloud.js', '/account-config.js'].includes(pathname)) {
+    return path.join(projectRoot, pathname.slice(1));
+  }
+
+  if (['/cloud-test/', '/cloud-test/index.html'].includes(pathname)) {
+    return path.join(projectRoot, 'cloud-test', 'index.html');
+  }
+  if (['/cloud-test/auth-local.js', '/cloud-test/account-config.js'].includes(pathname)) {
+    return path.join(projectRoot, pathname.slice(1));
   }
 
   if (pathname.startsWith('/screenshots/')) {

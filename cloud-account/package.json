@@ -1,0 +1,16 @@
+{
+  "name": "dcdv-cloud-account",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DCDV cloud accounts and learning progress on Aliyun FC + Tablestore",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "tablestore": "5.6.5"
+  },
+  "overrides": {
+    "protobufjs": "8.8.0"
+  }
+}

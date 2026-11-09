@@ -1,0 +1,54 @@
+{
+  "status": "test-deployed-production-domain-pending",
+  "verifiedAt": "2026-10-10T13:02:46.973Z",
+  "region": "cn-hangzhou",
+  "instanceName": "dcdv-accounts",
+  "instanceType": "CU-capacity",
+  "budget": {
+    "monthlyTargetCny": 10,
+    "scope": "new-account-service-only",
+    "hardCapAvailable": false,
+    "hardCapRequired": false,
+    "paidActivationAllowed": true,
+    "termsAndRoleApproval": "user-approved-2026-10-10",
+    "alertThresholdsCny": [5, 8],
+    "alertsConfigured": false,
+    "alertBlocker": "Aliyun budget console remains on its loading skeleton after navigation and reload; no budget or alert was saved."
+  },
+  "function": {
+    "name": "dcdv-next-account",
+    "runtime": "nodejs20",
+    "handler": "index.handler",
+    "memorySize": 512,
+    "cpu": 0.35,
+    "timeout": 30,
+    "instanceConcurrency": 1,
+    "minInstances": 0,
+    "maxInstances": 1,
+    "roleName": "dcdv-next-account-role",
+    "roleArn": "acs:ram::1124663562542626:role/dcdv-next-account-role",
+    "policyName": "DCDVNextAccountTables",
+    "logStorageEnabled": false,
+    "tracingEnabled": false,
+    "httpMethods": ["GET", "POST", "PUT", "OPTIONS"],
+    "environment": {
+      "DCDV_TABLESTORE_INSTANCE": "dcdv-accounts",
+      "DCDV_TABLESTORE_ENDPOINT": "https://dcdv-accounts.cn-hangzhou.tablestore.aliyuncs.com",
+      "DCDV_TABLE_PREFIX": "dcdv_",
+      "DCDV_ACCOUNT_ORIGINS": "https://miraitowa73.github.io"
+    }
+  },
+  "tables": [
+    { "name": "dcdv_users", "primaryKey": { "name": "key", "type": "STRING" }, "timeToLive": -1, "maxVersions": 1 },
+    { "name": "dcdv_progress", "primaryKey": { "name": "key", "type": "STRING" }, "timeToLive": -1, "maxVersions": 1 },
+    { "name": "dcdv_ephemeral", "primaryKey": { "name": "key", "type": "STRING" }, "timeToLive": 604800, "maxVersions": 1 }
+  ],
+  "tableReservedReadCU": 0,
+  "tableReservedWriteCU": 0,
+  "indexes": [],
+  "testApiOrigin": "https://dcdv-ne-account-mswdnmdfrd.cn-hangzhou.fcapp.run",
+  "testFrontendUrl": "https://miraitowa73.github.io/dcdv-next/cloud-test/",
+  "deploymentZipSha256": "e9a45ab975a477df963fb67a5541ab793200c1d2ec416dd233eba03f4d651e54",
+  "productionDomainStatus": "User has no domain and requested test deployment only on 2026-10-10.",
+  "accountApiOrigin": null
+}

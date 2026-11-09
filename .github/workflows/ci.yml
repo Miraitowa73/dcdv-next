@@ -25,4 +25,5 @@ jobs:
           iverilog -V
           vvp -V
       - run: npm ci
+      - run: npm ci --prefix cloud-account --ignore-scripts
       - run: npm test

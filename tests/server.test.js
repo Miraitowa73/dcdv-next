@@ -12,6 +12,8 @@ function makeProjectRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dcdv-server-'));
   fs.writeFileSync(path.join(root, 'DCDV.html'), '<!doctype html><title>DCDV</title>');
   fs.writeFileSync(path.join(root, 'auth-local.js'), 'window.DcdvLocalAuth = {};');
+  fs.writeFileSync(path.join(root, 'auth-cloud.js'), 'window.DcdvCloudAuth = {};');
+  fs.writeFileSync(path.join(root, 'account-config.js'), 'window.DCDV_ACCOUNT_API_BASE = "";');
   fs.writeFileSync(path.join(root, 'server.js'), 'secret');
   fs.writeFileSync(path.join(root, 'deepseek.config.json'), '{"apiKey":"sk-secret"}');
   fs.mkdirSync(path.join(root, 'backend'));
@@ -189,6 +191,12 @@ test('static server only exposes the app page and public images', async () => {
     const authModule = await request(port, { pathname: '/auth-local.js' });
     assert.equal(authModule.statusCode, 200);
     assert.equal(authModule.headers['content-type'], 'application/javascript; charset=utf-8');
+
+    for (const pathname of ['/auth-cloud.js', '/account-config.js']) {
+      const publicScript = await request(port, { pathname });
+      assert.equal(publicScript.statusCode, 200);
+      assert.equal(publicScript.headers['content-type'], 'application/javascript; charset=utf-8');
+    }
 
     const serverSource = await request(port, { pathname: '/server.js' });
     assert.equal(serverSource.statusCode, 403);
