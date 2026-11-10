@@ -51,7 +51,7 @@ function createClassroom({ store, now = Date.now, rateLimit }) {
   }
   async function summaryFor(member) {
     let summary = await store.summary(member.userId);
-    if (!summary) {
+    if (summary?.version !== 2) {
       const progress = await store.get('progress', member.userId);
       const user = progress ? null : await store.get('users', member.usernameKey);
       summary = summarize(progress?.value.state || user?.value.initialProgress, progress?.value.updatedAt || null);

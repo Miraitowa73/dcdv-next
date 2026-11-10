@@ -1,6 +1,6 @@
 {
   "status": "test-deployed-production-domain-pending",
-  "verifiedAt": "2026-11-09T04:29:29.164Z",
+  "verifiedAt": "2026-11-10T05:41:43.104Z",
   "region": "cn-hangzhou",
   "instanceName": "dcdv-accounts",
   "instanceType": "CU-capacity",
@@ -99,7 +99,7 @@
   "indexes": [],
   "testApiOrigin": "https://dcdv-ne-account-mswdnmdfrd.cn-hangzhou.fcapp.run",
   "testFrontendUrl": "https://miraitowa73.github.io/dcdv-next/cloud-test/",
-  "deploymentZipSha256": "3278fc6c5c1a8824121d6dd3e9822a6a6956856966a960880f7c0b9b36b26009",
+  "deploymentZipSha256": "65312a4d3bb19a5f96168516dcc21ebe3d2ef427e9a00c6db2f6361d6dfb55fd",
   "productionDomainStatus": "User has no domain and requested test deployment only on 2026-10-10.",
   "accountApiOrigin": null
 }

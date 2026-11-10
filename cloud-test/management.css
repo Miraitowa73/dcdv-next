@@ -9,3 +9,4 @@ dialog.has-footer .dialog-body{flex:1;min-height:0;max-height:none;overflow:auto
 .dialog-footer .help{margin:0;min-width:0;color:#bacbdc}
 .dialog-footer button{flex:none;min-height:44px}
 @media(max-width:540px){.dialog-footer{flex-direction:column;align-items:stretch;gap:10px;padding-top:12px;margin-top:12px}.dialog-footer button{width:100%}}
+.metric-note{display:block;margin-top:5px;color:#9bacc1;font-size:11px;line-height:1.5}

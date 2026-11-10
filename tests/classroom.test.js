@@ -84,6 +84,24 @@ test('existing accounts keep password and progress; teacher only receives whitel
   assert.deepEqual((await call('progress', undefined, student.token)).state, state);
   assert.equal((await call('login', { username: '20260001', password: 'Test-password-123' })).status, 200);
 });
+test('metrics sync atomically with progress and old summaries are upgraded without exposing drafts', async () => {
+  const { store, call, actor, importRows, teacher, group } = await fixture();
+  const student = await actor('2026111001');
+  const state = { completed: { 'stairs:truth': true }, metrics: { 'stairs:truth': { version: 1, elapsedMs: 90000, errors: 3, partial: false, completedAt: '2026-11-10T01:00:00.000Z' } }, practice: { private: 'SECRET-HDL' } };
+  const saved = await call('progress', { state, revision: null }, student.token, 'PUT'); assert.equal(saved.status, 200);
+  await importRows([{ studentNumber: '2026111001', name: '统计测试学生' }]);
+  const list = await call(`classes/${group.id}/students`, undefined, teacher.token);
+  assert.equal(list.students[0].completionTimeMs, 90000); assert.equal(list.students[0].errorCount, 3);
+  assert.equal(list.students[0].completionTimePartial, false);
+  assert.doesNotMatch(JSON.stringify(list), /SECRET|practice|levels/);
+  const old = await store.get('progress', student.user.id);
+  await store.put('progress', student.user.id, { ...old.value, summary: { completed: 1, total: 39, levels: [] } }, old.version);
+  const detail = await call(`classes/${group.id}/students/${student.user.id}/progress`, undefined, teacher.token);
+  assert.equal(detail.version, 2); assert.equal(detail.levels[0].errorCount, 3); assert.equal(detail.levels[0].completionTimeMs, 90000);
+  assert.doesNotMatch(JSON.stringify(detail), /SECRET|practice/);
+  assert.deepEqual((await call('progress', undefined, student.token)).state, state);
+});
+
 test('teachers cannot access another class, remove is immediate, and stale import retries cannot re-enroll', async () => {
   const { call, actor, importRows, teacher, group, store } = await fixture();
   const other = await actor('teacher02', 'teacher');

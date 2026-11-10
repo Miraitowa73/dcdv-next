@@ -3299,6 +3299,7 @@
     <input id="mixed-project-file-input" type="file" accept=".json,.dcdv.json,application/json" class="hidden" onchange="handleMixedProjectFileChange(event)">
     <input id="progress-import-input" type="file" accept=".json,application/json" class="hidden" onchange="handleProgressImport(event)">
 
+    <script src="./challenge-metrics.js"></script>
     <script>
         function cleanAiVerilogCode(text) {
             const raw = String(text || '').trim();
@@ -3542,6 +3543,17 @@
         ];
 
         const challengeState = createEmptyChallengeProgress();
+        let challengeMetricsDirty = false;
+        let lastMetricsSaveAt = Date.now();
+        let challengeGradeInFlight = false;
+        const challengeMetrics = DcdvChallengeMetrics.createTracker({
+            getState: () => challengeState,
+            onChange: () => { challengeMetricsDirty = true; progressChangeVersion++; }
+        });
+        function syncChallengeMetrics() {
+            const { group, level } = getActiveChallenge();
+            challengeMetrics.sync(getChallengeLevelKey(group.id, level.id), !!currentDcdvUser && activeTopTabId === 'tab-challenge' && !document.hidden && !progressOperationBusy);
+        }
         let activeChallengeSchematicKey = null;
         let activeChallengeFsmKey = null;
         const challengeFsmData = {
@@ -3600,6 +3612,7 @@
                 hints: {},
                 practice: {},
                 results: {},
+                metrics: {},
                 compileResults: {},
                 schematicDrafts: {},
                 fsmDrafts: {}
@@ -3616,6 +3629,7 @@
                 hints: parsed.hints || {},
                 practice: parsed.practice || {},
                 results: parsed.results || {},
+                metrics: parsed.metrics && typeof parsed.metrics === 'object' && !Array.isArray(parsed.metrics) ? parsed.metrics : {},
                 compileResults: parsed.compileResults || {},
                 schematicDrafts: parsed.schematicDrafts || {},
                 fsmDrafts: parsed.fsmDrafts || {}
@@ -3623,9 +3637,11 @@
         }
 
         function applyChallengeProgress(progress) {
+            challengeMetricsDirty = false;
             const normalized = normalizeChallengeProgress(progress);
             Object.keys(challengeState).forEach(key => delete challengeState[key]);
             Object.assign(challengeState, normalized);
+            challengeMetrics.reset();
             activeChallengeSchematicKey = null;
             activeChallengeFsmKey = null;
         }
@@ -3644,6 +3660,9 @@
 
         function persistChallengeProgress() {
             if (!currentDcdvUser || !window.DcdvAuth) return progressSavePromise;
+            challengeMetrics.checkpoint();
+            challengeMetricsDirty = false;
+            lastMetricsSaveAt = Date.now();
             if (progressSaveTimer) {
                 clearTimeout(progressSaveTimer);
                 progressSaveTimer = null;
@@ -3681,7 +3700,8 @@
         }
 
         async function flushChallengeProgress() {
-            if (progressSaveTimer) persistChallengeProgress();
+            challengeMetrics.checkpoint();
+            if (progressSaveTimer || challengeMetricsDirty) persistChallengeProgress();
             try {
                 await progressSavePromise;
                 return true;
@@ -3706,6 +3726,7 @@
 
         function setProgressOperationBusy(busy) {
             progressOperationBusy = busy;
+            syncChallengeMetrics();
             const locked = busy || !currentDcdvUser;
             document.querySelector('main')?.toggleAttribute('inert', locked);
             document.querySelector('.app-sidebar')?.toggleAttribute('inert', locked);
@@ -3740,11 +3761,14 @@
             challengeState.hints = {};
             challengeState.practice = {};
             challengeState.results = {};
+            challengeState.metrics = {};
             challengeState.compileResults = {};
             challengeState.schematicDrafts = {};
             challengeState.fsmDrafts = {};
+            challengeMetrics.reset();
             activeChallengeSchematicKey = null;
             activeChallengeFsmKey = null;
+            syncChallengeMetrics();
             saveChallengeProgress();
             renderChallengeTab();
             renderChallengeStrip();
@@ -3797,6 +3821,7 @@
         }
 
         function renderChallengeTab() {
+            syncChallengeMetrics();
             const list = document.getElementById('challenge-group-list');
             const detail = document.getElementById('challenge-detail');
             const summary = document.getElementById('challenge-progress-summary');
@@ -3869,6 +3894,7 @@
                                 </div>
                             </div>
                             <p class="text-sm text-slate-300 leading-relaxed">${escapeHtml(level.task)}</p>
+                            <p class="text-xs text-slate-400 mt-3">首次通过前，本关页面的前台学习耗时与提交未通过次数会同步给所属班级老师；切换页面或后台暂停计时，复习不改写首次记录。</p>
                             <div class="flex flex-wrap gap-2 mt-4">
                                 <button type="button" class="primary-cta bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-sm" onclick="gradeCurrentChallenge()">提交当前小关</button>
                                 <button type="button" class="primary-cta bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm" onclick="unlockChallengeHint()">解锁提示</button>
@@ -4758,6 +4784,7 @@
             };
             return {
                 ...outcome,
+                serviceError: !!result?.serviceError,
                 selectedTop: result?.selectedTop || ''
             };
         }
@@ -4799,6 +4826,7 @@
         }
 
         function selectChallengeGroup(groupId) {
+            challengeMetrics.pause();
             saveActiveChallengeSchematicDraft();
             saveActiveChallengeFsmDraft();
             const group = findChallengeGroup(groupId);
@@ -4812,6 +4840,7 @@
         }
 
         function selectChallengeLevel(groupId, levelId) {
+            challengeMetrics.pause();
             saveActiveChallengeSchematicDraft();
             saveActiveChallengeFsmDraft();
             const found = findChallengeLevel(groupId, levelId);
@@ -5212,6 +5241,7 @@
                 });
             }
             const ok = mismatches.length === 0;
+            challengeMetrics.record(key, ok);
             challengeState.results[key] = {
                 ok,
                 message: ok ? '真值表/表达式正确，可以进入下一小关。' : mismatches.slice(0, 6).join('\n')
@@ -5248,6 +5278,11 @@
         }
 
         async function gradeCurrentChallenge() {
+            if (challengeGradeInFlight || progressOperationBusy || !currentDcdvUser) return;
+            challengeGradeInFlight = true;
+            try {
+            const gradingUserId = currentDcdvUser.id, gradingProgress = challengeState.completed;
+            const gradingStillCurrent = () => currentDcdvUser?.id === gradingUserId && challengeState.completed === gradingProgress;
             const { group, level } = getActiveChallenge();
             if (!group || !level) return;
             if (level.buildMode === 'truth-table') {
@@ -5260,6 +5295,7 @@
             try {
                 code = getChallengeSourceCode(group, level);
             } catch (error) {
+                challengeMetrics.record(key, false);
                 challengeState.results[key] = { ok: false, message: error.message };
                 saveChallengeProgress();
                 renderChallengeTab();
@@ -5274,10 +5310,15 @@
 
             try {
                 await refreshBackendHealth();
+                if (!gradingStillCurrent()) return;
+                if (!compiledDesign.backend?.toolchain?.ok) throw new Error('编译服务暂不可用，本次不计入错误次数。');
                 let topModule = undefined;
                 if (level.buildMode === 'hdl') {
                     const compileOutcome = await compileChallengeHdl(level, key, code);
+                    if (!gradingStillCurrent()) return;
                     if (!compileOutcome.ok) {
+                        if (compileOutcome.serviceError) throw new Error('编译服务暂不可用，本次不计入错误次数。');
+                        challengeMetrics.record(key, false);
                         challengeState.results[key] = { ok: false, message: compileOutcome.message };
                         saveChallengeProgress();
                         renderChallengeTab();
@@ -5296,19 +5337,24 @@
                         signals: buildChallengeSignals(level)
                     }
                 });
+                if (!gradingStillCurrent()) return;
+                if (result?.serviceError) throw new Error('仿真服务暂不可用，本次不计入错误次数。');
                 if (!result?.ok) {
                     const localMismatches = level.buildMode === 'gate-schematic' ? compareGateSchematicOutputsLocally(level) : ['skip'];
                     if (level.buildMode === 'gate-schematic' && localMismatches.length === 0) {
                         challengeState.results[key] = { ok: true, message: '逻辑行为测试通过，可以进入下一小关。' };
+                        challengeMetrics.record(key, true);
                         challengeState.completed[key] = true;
                     } else {
                         const errors = (result.errors || []).join('\n') || result.compilerLog || result.runtimeLog || '编译或仿真失败。';
                         challengeState.results[key] = { ok: false, message: errors };
+                        challengeMetrics.record(key, false);
                     }
                 } else {
                     const mismatches = compareChallengeOutputs(level, result.outputs || []);
                     const localMismatches = (mismatches.length && level.buildMode === 'gate-schematic') ? compareGateSchematicOutputsLocally(level) : mismatches;
                     const ok = mismatches.length === 0 || (level.buildMode === 'gate-schematic' && localMismatches.length === 0);
+                    challengeMetrics.record(key, ok);
                     challengeState.results[key] = {
                         ok,
                         message: ok ? '编译和核心行为测试均通过。' : localMismatches.slice(0, 8).join('\n')
@@ -5316,12 +5362,14 @@
                     if (ok) challengeState.completed[key] = true;
                 }
             } catch (error) {
+                if (!gradingStillCurrent()) return;
                 challengeState.results[key] = { ok: false, message: error.message || getBackendConnectionMessage() };
             }
             saveChallengeProgress();
             renderChallengeTab();
             renderChallengeStrip();
             showToast(challengeState.results[key].ok ? '小关通过' : '小关未通过', challengeState.results[key].ok ? 'success' : 'error');
+            } finally { challengeGradeInFlight = false; }
         }
 
         function readUiBool(key, fallback = false) {
@@ -5592,9 +5640,10 @@
             try {
                 data = await response.json();
             } catch (error) {
-                data = { ok: false, errors: [`HTTP ${response.status}`] };
+                data = { ok: false, serviceError: true, errors: [`HTTP ${response.status}`] };
             }
             if (!response.ok) {
+                if (data && (response.status >= 500 || [401, 403, 429].includes(response.status))) data.serviceError = true;
                 return data || { ok: false, errors: [`HTTP ${response.status}`] };
             }
             return data;
@@ -6041,9 +6090,15 @@
                     if (controls && !controls.contains(event.target)) closeAccountMenu();
                 });
                 document.addEventListener('visibilitychange', () => {
+                    syncChallengeMetrics();
                     if (document.visibilityState === 'hidden') flushChallengeProgress();
                 });
-                window.addEventListener('pagehide', () => flushChallengeProgress());
+                window.addEventListener('pagehide', () => { challengeMetrics.pause(); flushChallengeProgress(); });
+                window.addEventListener('pageshow', () => syncChallengeMetrics());
+                setInterval(() => {
+                    syncChallengeMetrics();
+                    if (challengeMetricsDirty && !progressOperationBusy && Date.now() - lastMetricsSaveAt >= 60000) persistChallengeProgress();
+                }, 15000);
                 window.addEventListener('beforeunload', event => {
                     if (window.DcdvAuth?.isCloud && currentDcdvUser && progressChangeVersion !== progressSavedVersion) {
                         event.preventDefault();
@@ -13565,7 +13620,9 @@ function updateMixedReadouts() {
         }
         const tabs = ['tab-define', 'tab-verilog', 'tab-wave', 'tab-mixed', 'tab-challenge'];
         function switchTab(tId) {
+            challengeMetrics.pause();
             activeTopTabId = tId;
+            syncChallengeMetrics();
             document.querySelectorAll('.tab-btn').forEach(b => {
                 b.classList.remove('active');
                 if (b.getAttribute('onclick').includes(tId)) b.classList.add('active');

@@ -31,11 +31,11 @@
     "test_frontend_url": "https://miraitowa73.github.io/dcdv-next/cloud-test/",
     "test_frontend_enabled": true,
     "test_frontend_approved_on": "2026-11-09",
-    "verified_at": "2026-11-09T04:29:29.164Z",
-    "regression_tests_passed": 92,
-    "cloud_smoke_checks_passed": 13,
+    "verified_at": "2026-11-10T05:41:43.104Z",
+    "regression_tests_passed": 100,
+    "cloud_smoke_checks_passed": 14,
     "budget_alerts_configured": false,
-    "deployment_zip_sha256": "3278fc6c5c1a8824121d6dd3e9822a6a6956856966a960880f7c0b9b36b26009",
+    "deployment_zip_sha256": "65312a4d3bb19a5f96168516dcc21ebe3d2ef427e9a00c6db2f6361d6dfb55fd",
     "classroom_status": "deployed-and-browser-verified",
     "administrator_initialized_at": "2026-11-09T04:05:48.183Z",
     "bootstrap_environment_removed": true,
@@ -66,6 +66,14 @@
       "test_sessions_closed": true
     },
     "classroom_verified_at": "2026-11-09T07:12:31Z",
-    "ci_run_url": "https://github.com/Miraitowa73/dcdv-next/actions/runs/42576397745"
+    "ci_run_url": "https://github.com/Miraitowa73/dcdv-next/actions/runs/42576397745",
+    "learning_metrics": {
+      "backend_status": "deployed-and-cloud-smoke-verified",
+      "verified_at": "2026-11-10T05:41:43.104Z",
+      "summary_version": 2,
+      "local_browser_flow": "failed-once-then-first-pass-teacher-shows-11-seconds-and-1-error",
+      "old_progress": "unknown-or-partial-not-zero",
+      "new_cloud_resources": false
+    }
   }
 }

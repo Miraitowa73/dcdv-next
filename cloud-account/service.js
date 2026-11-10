@@ -10,7 +10,7 @@ const digest = value => createHash('sha256').update(value).digest('hex');
 
 function validateProgress(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) fail(400, 'INVALID_PROGRESS', '进度内容无效。');
-  const allowed = new Set(['activeGroupId', 'activeLevelId', 'completed', 'hints', 'practice', 'results', 'compileResults', 'schematicDrafts', 'fsmDrafts']);
+  const allowed = new Set(['activeGroupId', 'activeLevelId', 'completed', 'hints', 'practice', 'results', 'compileResults', 'schematicDrafts', 'fsmDrafts', 'metrics']);
   if (Object.keys(state).some(key => !allowed.has(key))) fail(400, 'INVALID_PROGRESS', '进度包含不支持的字段。');
   for (const [key, value] of Object.entries(state)) {
     if (key.startsWith('active')) {
@@ -82,7 +82,7 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
       }
       if (method === 'GET' && path === '/api/account/health') {
         await store.get('users', '__health__');
-        return result(200, { ok: true, service: 'dcdv-cloud-account', storage: 'tablestore', version: 2 });
+        return result(200, { ok: true, service: 'dcdv-cloud-account', storage: 'tablestore', version: 3, features: ['classrooms', 'learning-metrics-v1'] });
       }
       if (Buffer.byteLength(body) > MAX_PROGRESS_BYTES + 4096) fail(413, 'BODY_TOO_LARGE', '请求内容过大。');
       let data = {};

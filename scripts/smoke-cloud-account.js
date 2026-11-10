@@ -20,6 +20,7 @@ async function request(path, method = 'GET', data, token, extra = {}) {
 (async () => {
   const health = await request('health');
   assert.equal(health.status, 200); assert.equal(health.data.storage, 'tablestore'); checks.push('durable-store-health');
+  assert.ok(health.data.features?.includes('learning-metrics-v1')); checks.push('learning-metrics-enabled');
   const preflight = await request('progress', 'OPTIONS', undefined, undefined, { 'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'authorization,content-type' });
   assert.equal(preflight.status, 204); assert.equal(preflight.headers.get('access-control-allow-origin'), origin); checks.push('cors-preflight');
   assert.equal((await request('progress')).status, 401); checks.push('unauthenticated-progress-denied');
@@ -38,7 +39,7 @@ async function request(path, method = 'GET', data, token, extra = {}) {
   assert.equal(login.status, 200, JSON.stringify(login.data));
   const tokenB = login.data.token;
   assert.notEqual(tokenA, tokenB); checks.push('independent-device-login');
-  const updated = { completed: { smokeInitial: true, smokeNext: true } };
+  const updated = { completed: { smokeInitial: true, smokeNext: true, 'stairs:truth': true }, metrics: { 'stairs:truth': { version: 1, elapsedMs: 65000, errors: 2, partial: false, completedAt: new Date().toISOString() } } };
   const saved = await request('progress', 'PUT', { state: updated, revision: null }, tokenA);
   assert.equal(saved.status, 200, JSON.stringify(saved.data));
   assert.deepEqual((await request('progress', 'GET', undefined, tokenB)).data.state, updated); checks.push('cross-device-progress');

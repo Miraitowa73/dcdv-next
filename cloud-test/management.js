@@ -3,6 +3,25 @@
   const auth = window.DcdvCloudAuth.createClient({ baseUrl: window.DCDV_ACCOUNT_API_BASE, utils: window.DcdvLocalAuth, storage: window.sessionStorage, fetch: window.fetch.bind(window) });
   const $ = selector => document.querySelector(selector);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const metricsHelp = '耗时累计至首次通过，仅计算本关页面在前台的时间；后台和其他页面暂停。错误次数按提交未通过计，网络或服务故障不计，复习不改写记录。“≥”表示从功能更新后开始记录；旧数据无法补算。';
+  function duration(ms) {
+    if (!Number.isSafeInteger(ms) || ms < 0) return '未记录';
+    const seconds = Math.floor(ms / 1000);
+    if (!seconds) return '不足 1 秒';
+    const hours = Math.floor(seconds / 3600), minutes = Math.floor(seconds % 3600 / 60), rest = seconds % 60;
+    return `${hours ? `${hours}小时 ` : ''}${minutes ? `${minutes}分 ` : ''}${rest || (!hours && !minutes) ? `${rest}秒` : ''}`.trim();
+  }
+  function totalTime(item) {
+    if (!item.completed) return '尚未通关';
+    if (item.completionTimeMs == null) return '未记录';
+    return `${item.completionTimePartial ? '≥ ' : ''}${duration(item.completionTimeMs)}${item.completionTimeRecorded < item.completed ? `<small class="metric-note">仅 ${Number(item.completionTimeRecorded) || 0} / ${Number(item.completed)} 关有记录</small>` : ''}`;
+  }
+  function errorsText(count, partial) { return Number.isSafeInteger(count) && count >= 0 ? `${partial ? '≥ ' : ''}${count} 次` : '未记录'; }
+  function levelTime(level) {
+    const ms = level.completed ? level.completionTimeMs : level.elapsedMs;
+    if (ms == null) return '未记录';
+    return `${level.metricsPartial ? '≥ ' : ''}${duration(ms)}${level.completed ? '' : '<small class="metric-note">进行中 · 累计</small>'}`;
+  }
   const api = (path, data, method) => auth.request(path, { method: method || (data === undefined ? 'GET' : 'POST'), data });
   let user, classes = [], selected = null, roster = [], currentPage = 1, preview = null, loadVersion = 0, busy = false, pendingConfirmation = null;
   const dialog = $('#dialog');
@@ -91,7 +110,7 @@
   function renderClass() {
     const started = roster.filter(item => item.completed > 0).length;
     const average = roster.length ? Math.round(roster.reduce((sum, item) => sum + item.rate, 0) / roster.length) : 0;
-    $('#content').innerHTML = `<div class="heading-row"><div><p class="eyebrow">数字电路 · 学习进度</p><h1>${esc(selected.name)} ${selected.archived ? '<span class="pill warn">已归档</span>' : ''}</h1><p class="subtext">共用 39 关学习进度，用于教学跟踪。最近同步时间不代表在线状态。</p></div><div class="actions"><button data-action="rename-class">改名</button><button data-action="archive-class">${selected.archived ? '恢复班级' : '归档'}</button><button data-action="refresh">刷新进度</button>${selected.archived ? '' : '<button class="primary" data-action="import">导入学生</button>'}</div></div><div class="stats"><div class="stat"><strong>${roster.length}</strong><span>班级学生</span></div><div class="stat"><strong>${started}</strong><span>已通过至少一关</span></div><div class="stat"><strong>${average}%</strong><span>平均完成率</span></div></div><div class="toolbar"><input id="search" type="search" placeholder="搜索学号或姓名" aria-label="搜索学号或姓名"><select id="sort" aria-label="排序"><option value="number">按学号排序</option><option value="desc">完成率从高到低</option><option value="asc">完成率从低到高</option></select><span class="count" id="count"></span></div><div class="table-wrap"><table><thead><tr><th>学号</th><th>姓名</th><th>完成关数</th><th>完成率</th><th>最近同步时间</th><th>操作</th></tr></thead><tbody id="students"></tbody></table></div><div id="pager" class="pager"></div>`;
+    $('#content').innerHTML = `<div class="heading-row"><div><p class="eyebrow">数字电路 · 学习进度</p><h1>${esc(selected.name)} ${selected.archived ? '<span class="pill warn">已归档</span>' : ''}</h1><p class="subtext">共用 39 关学习进度，用于教学跟踪。最近同步时间不代表在线状态。</p></div><div class="actions"><button data-action="rename-class">改名</button><button data-action="archive-class">${selected.archived ? '恢复班级' : '归档'}</button><button data-action="refresh">刷新进度</button>${selected.archived ? '' : '<button class="primary" data-action="import">导入学生</button>'}</div></div><div class="stats"><div class="stat"><strong>${roster.length}</strong><span>班级学生</span></div><div class="stat"><strong>${started}</strong><span>已通过至少一关</span></div><div class="stat"><strong>${average}%</strong><span>平均完成率</span></div></div><p class="help">${metricsHelp}</p><div class="toolbar"><input id="search" type="search" placeholder="搜索学号或姓名" aria-label="搜索学号或姓名"><select id="sort" aria-label="排序"><option value="number">按学号排序</option><option value="desc">完成率从高到低</option><option value="asc">完成率从低到高</option></select><span class="count" id="count"></span></div><div class="table-wrap"><table><thead><tr><th>学号</th><th>姓名</th><th>完成关数</th><th>完成率</th><th>通关总耗时</th><th>错误次数</th><th>最近同步时间</th><th>操作</th></tr></thead><tbody id="students"></tbody></table></div><div id="pager" class="pager"></div>`;
     renderStudents();
   }
   function renderStudents() {
@@ -99,12 +118,12 @@
     const filtered = roster.filter(item => `${item.studentNumber} ${item.name}`.toLowerCase().includes(query)).sort((a, b) => (sort === 'desc' ? b.rate - a.rate : sort === 'asc' ? a.rate - b.rate : 0) || a.studentNumber.localeCompare(b.studentNumber));
     const pages = Math.max(1, Math.ceil(filtered.length / 50)); currentPage = Math.min(currentPage, pages);
     $('#count').textContent = `共 ${filtered.length} 人 · 每页 50 人`;
-    $('#students').innerHTML = filtered.slice((currentPage - 1) * 50, currentPage * 50).map(item => `<tr><td class="mono">${esc(item.studentNumber)}</td><td>${esc(item.name)}</td><td>${item.completed} / ${item.total}</td><td><div class="progress"><div class="track"><span style="width:${Number(item.rate) || 0}%"></span></div>${item.rate}%</div></td><td class="muted">${item.updatedAt ? esc(new Date(item.updatedAt).toLocaleString('zh-CN', { hour12: false })) : '尚未同步'}</td><td><div class="actions"><button class="link" data-action="detail" data-id="${esc(item.userId)}">查看明细</button><button data-action="remove" data-id="${esc(item.userId)}">移出班级</button></div></td></tr>`).join('') || '<tr><td colspan="6" class="empty">没有符合条件的学生。可导入名单，或调整搜索条件。</td></tr>';
+    $('#students').innerHTML = filtered.slice((currentPage - 1) * 50, currentPage * 50).map(item => `<tr><td class="mono">${esc(item.studentNumber)}</td><td>${esc(item.name)}</td><td>${item.completed} / ${item.total}</td><td><div class="progress"><div class="track"><span style="width:${Number(item.rate) || 0}%"></span></div>${item.rate}%</div></td><td>${totalTime(item)}</td><td>${errorsText(item.errorCount, item.errorsPartial)}</td><td class="muted">${item.updatedAt ? esc(new Date(item.updatedAt).toLocaleString('zh-CN', { hour12: false })) : '尚未同步'}</td><td><div class="actions"><button class="link" data-action="detail" data-id="${esc(item.userId)}">查看明细</button><button data-action="remove" data-id="${esc(item.userId)}">移出班级</button></div></td></tr>`).join('') || '<tr><td colspan="8" class="empty">没有符合条件的学生。可导入名单，或调整搜索条件。</td></tr>';
     $('#pager').innerHTML = `<button data-action="previous" ${currentPage === 1 ? 'disabled' : ''}>上一页</button><span>${currentPage} / ${pages}</span><button data-action="next" ${currentPage === pages ? 'disabled' : ''}>下一页</button>`;
   }
   async function renderStudentClasses() {
     const groups = await paged('my-classes', 'classes');
-    $('#content').innerHTML = `<p class="eyebrow">学习账号</p><h1>我的班级</h1><p class="subtext">班级由老师导入学号加入。所属班级的老师可以查看你的关卡完成情况、最新判定与提示使用次数。<br>各班共用学习进度，老师看不到你的代码、答案和电路草稿。</p>${groups.map(group => `<section class="student-class"><h3>${esc(group.name)} ${group.archived ? '<span class="pill warn">已归档</span>' : ''}</h3><span class="muted">负责老师：${esc(group.teacher)}</span></section>`).join('') || '<div class="empty">暂未加入班级。请将你的学号告知老师，由老师导入名单。</div>'}<p class="help">账号：${esc(user.username)}${user.studentNumber ? '' : ' · 当前为旧用户名账号；导入名单按学号账号匹配，不会自动合并账号。'}</p><a href="./?learn=1">继续学习 →</a>`;
+    $('#content').innerHTML = `<p class="eyebrow">学习账号</p><h1>我的班级</h1><p class="subtext">班级由老师导入学号加入。所属班级的老师可以查看你的关卡完成情况、最新判定、提示使用次数、首次通关耗时与错误次数。<br>各班共用学习进度，老师看不到你的代码、答案和电路草稿。</p>${groups.map(group => `<section class="student-class"><h3>${esc(group.name)} ${group.archived ? '<span class="pill warn">已归档</span>' : ''}</h3><span class="muted">负责老师：${esc(group.teacher)}</span></section>`).join('') || '<div class="empty">暂未加入班级。请将你的学号告知老师，由老师导入名单。</div>'}<p class="help">账号：${esc(user.username)}${user.studentNumber ? '' : ' · 当前为旧用户名账号；导入名单按学号账号匹配，不会自动合并账号。'}</p><a href="./?learn=1">继续学习 →</a>`;
   }
   function showImport() {
     preview = null;
@@ -176,7 +195,7 @@
         await api(`classes/${selected.id}/students/${member.userId}/remove`, {}); await selectClass(selected.id);
       } else if (action === 'detail') {
         const item = await api(`classes/${selected.id}/students/${button.dataset.id}/progress`);
-        modal(`${item.name} · ${item.studentNumber}`, `<p class="subtext">已完成 ${item.completed} / ${item.total} 关。展示最近一次判定，不包含作答内容。</p><div class="table-wrap"><table><thead><tr><th>项目</th><th>关卡</th><th>已完成</th><th>最新判定</th><th>提示次数</th></tr></thead><tbody>${item.levels.map(level => `<tr><td>${esc(level.group)}</td><td>${esc(level.title)}</td><td>${level.completed ? '<span class="pill">已完成</span>' : '未完成'}</td><td>${{ passed: '通过', failed: '未通过', unattempted: '未作答' }[level.latestResult] || '未作答'}</td><td>${level.hints}</td></tr>`).join('')}</tbody></table></div>`);
+        modal(`${item.name} · ${item.studentNumber}`, `<p class="subtext">已完成 ${item.completed} / ${item.total} 关 · 通关总耗时：${totalTime(item)} · 错误次数：${errorsText(item.errorCount, item.errorsPartial)}</p><p class="help">${metricsHelp}</p><div class="table-wrap"><table><thead><tr><th>项目</th><th>关卡</th><th>已完成</th><th>最新判定</th><th>提示次数</th><th>首次通关耗时</th><th>错误次数</th></tr></thead><tbody>${item.levels.map(level => `<tr><td>${esc(level.group)}</td><td>${esc(level.title)}</td><td>${level.completed ? '<span class="pill">已完成</span>' : '未完成'}</td><td>${{ passed: '通过', failed: '未通过', unattempted: '未作答' }[level.latestResult] || '未作答'}</td><td>${level.hints}</td><td>${levelTime(level)}</td><td>${errorsText(level.errorCount, level.metricsPartial)}</td></tr>`).join('')}</tbody></table></div>`);
       } else if (action === 'import') showImport();
       else if (action === 'template-csv') download('\ufeff学号,姓名\r\n', '学生名单模板.csv', 'text/csv;charset=utf-8');
       else if (action === 'template-xlsx') {

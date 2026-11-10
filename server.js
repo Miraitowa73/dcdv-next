@@ -165,7 +165,7 @@ function resolvePublicStaticPath(projectRoot, pathname) {
   if (['/cloud-test/', '/cloud-test/index.html'].includes(pathname)) {
     return path.join(projectRoot, 'cloud-test', 'index.html');
   }
-  if (['/cloud-test/auth-local.js', '/cloud-test/account-config.js', '/cloud-test/management.html', '/cloud-test/management.js', '/cloud-test/management.css', '/cloud-test/roster.js', '/cloud-test/vendor/xlsx.full.min.js'].includes(pathname)) {
+  if (['/cloud-test/auth-local.js', '/cloud-test/account-config.js', '/cloud-test/management.html', '/cloud-test/management.js', '/cloud-test/management.css', '/cloud-test/roster.js', '/cloud-test/challenge-metrics.js', '/cloud-test/vendor/xlsx.full.min.js'].includes(pathname)) {
     return path.join(projectRoot, pathname.slice(1));
   }
 
