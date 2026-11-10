@@ -3390,7 +3390,7 @@
                 id: 'stairs',
                 title: '楼梯灯双控开关',
                 scenario: '如图所示，楼上、楼下各有一个开关，任何一端都能改变同一盏楼梯灯的状态。',
-                image: 'assets/challenges/stairs.png',
+                image: '../assets/challenges/stairs.png',
                 imageAlt: '楼梯灯双控开关场景图',
                 levels: [
                     {
@@ -3427,7 +3427,7 @@
                 id: 'voter',
                 title: '投票表决器',
                 scenario: '班级投票、评审审批和多人仲裁都需要“多数同意才通过”的规则。表决器能把人的选择变成稳定的数字逻辑。',
-                image: 'assets/challenges/voter.png',
+                image: '../assets/challenges/voter.png',
                 imageAlt: '投票表决器场景图',
                 levels: [
                     { id: 'truth3', title: '三人多数表决真值表', buildMode: 'truth-table', task: '3 名评委 A/B/C 中至少 2 人同意时 Y=1。', tests: makeTruthRows(['A','B','C'], 'Y', '(A&B)|(A&C)|(B&C)'), hints: ['“多数”就是 3 人里至少 2 人为 1。', '输出为 1 的行有 011、101、110、111。', '参考表达式：Y=AB+AC+BC。'], reference: 'Y = (A & B) | (A & C) | (B & C)' },
@@ -3440,7 +3440,7 @@
                 id: 'decoder',
                 title: '电梯楼层译码器',
                 scenario: '电梯控制器内部用二进制编号表示楼层，译码器负责点亮对应楼层灯或把编号送到显示模块。',
-                image: 'assets/challenges/decoder.png',
+                image: '../assets/challenges/decoder.png',
                 imageAlt: '电梯楼层译码器场景图',
                 levels: [
                     { id: 'floor-code', title: '认识 2 位楼层编号', buildMode: 'truth-table', task: '理解 2 位输入 A1/A0 可以表示 4 个楼层。', tests: rows([[{A1:0,A0:0},{Y0:1}], [{A1:0,A0:1},{Y0:0}], [{A1:1,A0:0},{Y0:0}], [{A1:1,A0:1},{Y0:0}]]), hints: ['00 可以代表 1 层，01 代表 2 层。', '本小关只填写 Y0 是否被点亮。', '当 A1A0=00 时，Y0=1。'], reference: '00->Y0，01->Y1，10->Y2，11->Y3。' },
@@ -3453,7 +3453,7 @@
                 id: 'lock',
                 title: '保险箱密码锁',
                 scenario: '门锁和保险箱需要比较输入密码与预设密码，并在错误时报警。这个关卡把比较器、相等判断和使能控制连起来。',
-                image: 'assets/challenges/lock.png',
+                image: '../assets/challenges/lock.png',
                 imageAlt: '保险箱密码锁场景图',
                 levels: [
                     { id: 'one-bit', title: '单位密码位比较', buildMode: 'gate-schematic', task: '用异或和非门判断输入 K 与密码 P 是否相等。', tests: rows([[{K:0,P:0},{EQ:1}], [{K:0,P:1},{EQ:0}], [{K:1,P:0},{EQ:0}], [{K:1,P:1},{EQ:1}]]), hints: ['异或表示不同。', '相等就是“不同”的反面。', 'EQ = ~(K ^ P)。'], reference: 'EQ = ~(K ^ P)' },
@@ -3466,7 +3466,7 @@
                 id: 'segment',
                 title: '数码管信息牌',
                 scenario: '仪表盘、分数牌和倒计时都离不开数码管。学生先理解七段显示，再逐步写出译码逻辑。',
-                image: 'assets/challenges/segment.png',
+                image: '../assets/challenges/segment.png',
                 imageAlt: '数码管信息牌场景图',
                 levels: [
                     { id: 'segments', title: '认识七段数码管', buildMode: 'truth-table', task: '七段位置：A=顶部，B=右上，C=右下，D=底部，E=左下，F=左上，G=中间。这里固定显示数字 1，请填写 A-G 是否点亮：1 表示点亮，0 表示熄灭。', tests: rows([[{DIGIT:1},{A:0,B:1,C:1,D:0,E:0,F:0,G:0}]]), hints: ['先记住位置：A 顶、B 右上、C 右下、D 底、E 左下、F 左上、G 中间。', '数字 1 只需要右侧两段亮。', '所以 B=1，C=1，其余段为 0。'], reference: '显示数字 1：A=0，B=1，C=1，D=0，E=0，F=0，G=0。' },
@@ -3479,7 +3479,7 @@
                 id: 'register',
                 title: '触发器与寄存器工坊',
                 scenario: '按键记忆、状态保存和串并转换都需要触发器。这个关卡从 1 位记忆逐步走到多位寄存器。',
-                image: 'assets/challenges/register.png',
+                image: '../assets/challenges/register.png',
                 imageAlt: '触发器与寄存器工坊场景图',
                 levels: [
                     { id: 'rs', title: 'RS 锁存逻辑', buildMode: 'truth-table', task: '理解 RS 的基本动作：S=1 置位，R=1 复位，S=R=0 保持。本小关填写非保持情形。', tests: rows([[{S:1,R:0},{Q:1}], [{S:0,R:1},{Q:0}], [{S:0,R:0},{Q:0}]]), hints: ['RS 是最基础的记忆单元。', '保持需要历史状态，本小关只判断明确置位/复位。', 'S=1,R=0 时 Q=1；S=0,R=1 时 Q=0。'], reference: 'S 置位，R 复位，00 保持，11 避免。' },
@@ -3492,7 +3492,7 @@
                 id: 'counter',
                 title: '计数时钟塔',
                 scenario: '流水灯、秒表和周期节拍都依赖计数器。学生先看到翻转，再扩展到环形和分频。',
-                image: 'assets/challenges/counter.png',
+                image: '../assets/challenges/counter.png',
                 imageAlt: '计数时钟塔场景图',
                 levels: [
                     { id: 'toggle', title: '1 位翻转节拍', buildMode: 'hdl', task: '实现 1 位 T 型翻转效果：每个上升沿 q 取反，rst 清 0。', tests: rows([[{clk:0,rst:1},{q:0}], [{clk:1,rst:0},{q:1}], [{clk:0,rst:0},{q:1}], [{clk:1,rst:0},{q:0}]]), hints: ['D 触发器也能做翻转：D 接 ~Q。', 'HDL 中可以写 q <= ~q。', 'rst 时 q=0。'], reference: 'if(rst) q<=0; else q<=~q;' },
@@ -3505,7 +3505,7 @@
                 id: 'quiz',
                 title: '智力竞赛抢答器',
                 scenario: '课堂抢答和竞赛答题需要锁定第一个按下按钮的人，后续按钮不能抢走资格。',
-                image: 'assets/challenges/quiz.png',
+                image: '../assets/challenges/quiz.png',
                 imageAlt: '智力竞赛抢答器场景图',
                 levels: [
                     { id: 'priority', title: '四路输入优先判断', buildMode: 'gate-schematic', task: '用门电路实现四路抢答优先编码，P1 优先级最高，输出 W1-W4。', tests: rows([[{P1:1,P2:1,P3:0,P4:0},{W1:1,W2:0,W3:0,W4:0}], [{P1:0,P2:1,P3:1,P4:0},{W1:0,W2:1,W3:0,W4:0}], [{P1:0,P2:0,P3:0,P4:1},{W1:0,W2:0,W3:0,W4:1}]]), hints: ['低优先级要被高优先级屏蔽。', 'W2 = ~P1 & P2。', 'W4 = ~P1 & ~P2 & ~P3 & P4。'], reference: 'W1=P1，W2=~P1&P2，W3=~P1&~P2&P3，W4=~P1&~P2&~P3&P4。' },
@@ -3518,7 +3518,7 @@
                 id: 'accumulator',
                 title: '串行累加计算器',
                 scenario: '低资源计算单元常常用少量加法器和寄存器串行处理数据，适合理解“用时间换硬件”。',
-                image: 'assets/challenges/accumulator.png',
+                image: '../assets/challenges/accumulator.png',
                 imageAlt: '串行累加计算器场景图',
                 levels: [
                     { id: 'half-adder', title: '半加器', buildMode: 'gate-schematic', task: '用异或门和与门搭建 1 位半加器。', tests: rows([[{A:0,B:0},{SUM:0,CARRY:0}], [{A:0,B:1},{SUM:1,CARRY:0}], [{A:1,B:0},{SUM:1,CARRY:0}], [{A:1,B:1},{SUM:0,CARRY:1}]]), hints: ['和位是不进位加法。', '进位只有两个输入都为 1 时产生。', 'SUM=A^B，CARRY=A&B。'], reference: 'SUM = A ^ B，CARRY = A & B。' },
@@ -3531,7 +3531,7 @@
                 id: 'elevator',
                 title: '电梯控制器 FSM',
                 scenario: '电梯需要根据请求、方向和门控时间做状态决策，这是状态机最直观的实际应用。',
-                image: 'assets/challenges/elevator.png',
+                image: '../assets/challenges/elevator.png',
                 imageAlt: '电梯控制器场景图',
                 levels: [
                     { id: 'two-floor', title: '两层电梯状态图', buildMode: 'fsm', task: '用状态图表示 F1/F2 两个楼层，请求 req2 时从 F1 到 F2，请求 req1 时从 F2 到 F1。', tests: rows([[{clk:0,rst:1,req1:0,req2:0},{state_out:'0'}], [{clk:1,rst:0,req1:0,req2:1},{state_out:'1'}], [{clk:0,rst:0,req1:0,req2:0},{state_out:'1'}], [{clk:1,rst:0,req1:1,req2:0},{state_out:'0'}]]), hints: ['每个楼层就是一个状态。', '转移标签可以写 req2 或 req1。', '无请求时保持当前状态。'], reference: 'F1 --req2--> F2，F2 --req1--> F1。' },
