@@ -2724,6 +2724,7 @@
                     <div class="account-menu-summary">
                         <div id="account-storage-label" class="text-[10px] uppercase tracking-[.16em] text-slate-600">当前本机用户</div>
                         <div id="account-menu-username" class="mt-1 truncate text-sm font-semibold text-slate-200">用户</div>
+                        <div id="account-menu-login" class="mt-1 break-all text-xs text-slate-400"></div>
                         <div id="account-sync-status" class="mt-2 text-xs text-slate-400" role="status" aria-live="polite"></div>
                     </div>
                     <div id="account-cloud-actions" class="hidden">
@@ -5961,16 +5962,19 @@
             controls.classList.toggle('hidden', !currentDcdvUser);
             if (!currentDcdvUser) return;
             const username = String(currentDcdvUser.username || '用户');
+            const displayName = String(currentDcdvUser.displayName || '').trim() || username;
             const completed = countCompletedChallenges();
             const total = getChallengeTotalLevels();
-            const initial = Array.from(username)[0]?.toLocaleUpperCase('zh-CN') || 'U';
+            const initial = Array.from(displayName)[0]?.toLocaleUpperCase('zh-CN') || 'U';
             const avatar = document.getElementById('account-avatar');
             const usernameNode = document.getElementById('account-username');
             const menuUsername = document.getElementById('account-menu-username');
             const progressNode = document.getElementById('account-progress');
             if (avatar) avatar.textContent = initial;
-            if (usernameNode) usernameNode.textContent = username;
-            if (menuUsername) menuUsername.textContent = username;
+            if (usernameNode) { usernameNode.textContent = displayName; usernameNode.title = displayName; }
+            if (menuUsername) { menuUsername.textContent = displayName; menuUsername.title = displayName; }
+            const loginNode = document.getElementById('account-menu-login');
+            if (loginNode) loginNode.textContent = `登录账号：${username}`;
             if (progressNode) progressNode.textContent = `闯关 ${completed} / ${total}`;
         }
 
