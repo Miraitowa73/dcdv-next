@@ -42,6 +42,52 @@ test('public signup never grants roles, reserves administrator and validates sch
   assert.equal((await call('register', { username: 'miraitowa', password: 'Test-password-123' })).status, 409);
   assert.equal((await call('register', { username: '123', password: 'Test-password-123' })).status, 400);
 });
+
+test('teacher Chinese display names update without changing login, password, classes or progress', async () => {
+  const { call, actor, store, teacher, group, importRows } = await fixture();
+  const admin = await actor('admin01', 'admin');
+  await call('admin/teachers', { username: 'teacher01', displayName: '原姓名', useExisting: true }, admin.token);
+  await importRows([{ studentNumber: '00111111', name: '学生甲' }]);
+  const student = await call('login', { username: '00111111', password: '111111' });
+  const changed = await call('change-password', { newPassword: 'Student-private-123' }, student.token);
+  const state = { completed: { 'stairs:truth': true } };
+  await call('progress', { state, revision: null }, teacher.token, 'PUT');
+  const before = (await store.get('users', 'teacher01')).value;
+  const renamed = await call('admin/teachers/profile', { username: 'teacher01', displayName: '  周老师  ' }, admin.token);
+  assert.equal(renamed.status, 200); assert.equal(renamed.user.displayName, '周老师');
+  assert.deepEqual((await store.get('users', 'teacher01')).value, { ...before, displayName: '周老师' });
+  assert.equal((await call('admin/teachers', undefined, admin.token)).teachers[0].displayName, '周老师');
+  assert.equal((await call('my-classes', undefined, changed.token)).classes[0].teacher, '周老师');
+  const own = await call('profile', { displayName: '李老师' }, teacher.token);
+  assert.equal(own.status, 200); assert.equal(own.user.username, 'teacher01');
+  assert.equal((await call('login', { username: 'teacher01', password: 'Test-password-123' })).user.displayName, '李老师');
+  assert.equal((await call('classes', undefined, teacher.token)).classes[0].id, group.id);
+  assert.deepEqual((await call('progress', undefined, teacher.token)).state, state);
+  const audits = await store.scan('classes', 'audit:', null, 100);
+  assert.ok(audits.rows.some(row => row.value.action === 'teacher.rename' && row.value.actorId === admin.user.id && row.value.status === 'completed'));
+  assert.ok(audits.rows.some(row => row.value.action === 'profile.rename' && row.value.actorId === teacher.user.id && row.value.status === 'completed'));
+});
+
+test('display name updates enforce role, target, field whitelist and first-password restrictions', async () => {
+  const { call, actor, teacher, store } = await fixture();
+  const admin = await actor('admin01', 'admin'); const student = await actor('00111112');
+  assert.equal((await call('profile', { displayName: '姓名' })).status, 401);
+  assert.equal((await call('profile', { displayName: '姓名' }, student.token)).status, 403);
+  assert.equal((await call('admin/teachers/profile', { username: 'teacher01', displayName: '姓名' }, teacher.token)).status, 403);
+  assert.equal((await call('admin/teachers/profile', { username: '00111112', displayName: '姓名' }, admin.token)).status, 404);
+  assert.equal((await call('admin/teachers/profile', { username: 'admin01', displayName: '姓名' }, admin.token)).status, 404);
+  for (const extra of [{ username: 'other' }, { role: 'admin' }, { password: 'forged-password' }, { mustChangePassword: false }]) {
+    assert.equal((await call('profile', { displayName: '姓名', ...extra }, teacher.token)).status, 400);
+  }
+  for (const name of ['', ' ', 'a'.repeat(41), 'bad\nname']) assert.equal((await call('profile', { displayName: name }, teacher.token)).status, 400);
+  const created = await call('admin/teachers', { username: 'teacher-new', displayName: '新老师' }, admin.token);
+  const first = await call('login', { username: 'teacher-new', password: created.temporaryPassword });
+  assert.equal((await call('profile', { displayName: '姓名' }, first.token)).error.code, 'PASSWORD_CHANGE_REQUIRED');
+  await call('admin/teachers/revoke', { username: 'teacher01' }, admin.token);
+  assert.equal((await call('profile', { displayName: '姓名' }, teacher.token)).status, 403);
+  assert.equal((await call('admin/teachers/profile', { username: 'teacher01', displayName: '姓名' }, admin.token)).status, 404);
+  assert.equal((await store.get('users', 'teacher01')).value.displayName, undefined);
+});
 test('import preserves zeros, forces first password change, and invalidates old sessions', async () => {
   const { call, importRows, teacher, group, store } = await fixture();
   const result = await importRows([{ studentNumber: '00123456', name: '张同学' }]);

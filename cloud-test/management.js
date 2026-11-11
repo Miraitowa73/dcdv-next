@@ -23,7 +23,7 @@
     return `${level.metricsPartial ? '≥ ' : ''}${duration(ms)}${level.completed ? '' : '<small class="metric-note">进行中 · 累计</small>'}`;
   }
   const api = (path, data, method) => auth.request(path, { method: method || (data === undefined ? 'GET' : 'POST'), data });
-  let user, classes = [], selected = null, roster = [], currentPage = 1, preview = null, loadVersion = 0, busy = false, pendingConfirmation = null;
+  let user, teacherAccounts = [], classes = [], selected = null, roster = [], currentPage = 1, preview = null, loadVersion = 0, busy = false, pendingConfirmation = null;
   const dialog = $('#dialog');
   function notice(message, error = false) {
     const node = $('#notice'); node.hidden = !message; node.classList.toggle('error', error); node.textContent = message;
@@ -63,7 +63,7 @@
   function renderSignedOut() {
     user = null; roster = []; classes = []; selected = null; preview = null;
     $('#identity').textContent = ''; $('#class-nav').replaceChildren(); $('#create-class').hidden = true;
-    $('#password-action').hidden = $('#logout-action').hidden = true;
+    $('#profile-action').hidden = $('#password-action').hidden = $('#logout-action').hidden = true;
     $('#nav-title').textContent = '请先登录';
     $('#content').innerHTML = '<div class="empty"><h2>登录后进入教学空间</h2><p>老师账号由管理员开通，学生可以用学号注册。</p><a href="./">前往登录 →</a></div>';
   }
@@ -81,14 +81,15 @@
   async function loadHome() {
     $('#identity').textContent = `${user.displayName || user.username} · ${{ admin: '管理员', teacher: '老师', student: '学生' }[user.role] || '学生'}`;
     $('#logout-action').hidden = false; $('#password-action').hidden = !!user.mustChangePassword;
+    $('#profile-action').hidden = !!user.mustChangePassword || !['teacher', 'admin'].includes(user.role);
     if (user.mustChangePassword) { $('#nav-title').textContent = '设置个人密码'; $('#content').innerHTML = passwordForm(true); return; }
     if (user.role === 'admin') { $('#nav-title').textContent = '老师账号管理'; await renderTeachers(); }
     else if (user.role === 'teacher') { $('#nav-title').textContent = '我的班级'; $('#create-class').hidden = false; await loadClasses(); }
     else { $('#nav-title').textContent = '我的班级'; await renderStudentClasses(); }
   }
   async function renderTeachers() {
-    const teachers = await paged('admin/teachers', 'teachers');
-    $('#content').innerHTML = `<div class="heading-row"><div><p class="eyebrow">账号管理</p><h1>老师账号</h1><p class="subtext">只有管理员可以开通教师权限。撤销权限不会删除账号或学习进度。</p></div><button class="primary" data-action="add-teacher">＋ 开通老师账号</button></div><div class="table-wrap"><table><thead><tr><th>账号</th><th>姓名</th><th>身份</th><th>操作</th></tr></thead><tbody>${teachers.map(item => `<tr><td class="mono">${esc(item.username)}</td><td>${esc(item.displayName || '—')}</td><td>${item.role === 'teacher' ? '老师' : '已撤销教师权限'}</td><td>${item.role === 'teacher' ? `<button data-action="reset-teacher" data-username="${esc(item.username)}">重置临时密码</button> <button class="danger" data-action="revoke-teacher" data-username="${esc(item.username)}">撤销权限</button>` : '可通过“开通老师账号”重新授权'}</td></tr>`).join('') || '<tr><td colspan="4">暂无老师账号，请点击右上角开通。</td></tr>'}</tbody></table></div>`;
+    const teachers = teacherAccounts = await paged('admin/teachers', 'teachers');
+    $('#content').innerHTML = `<div class="heading-row"><div><p class="eyebrow">账号管理</p><h1>老师账号</h1><p class="subtext">登录账号用于登录；显示姓名支持中文，学生会看到此姓名。修改姓名不改变登录账号、密码或学习进度。</p></div><button class="primary" data-action="add-teacher">＋ 开通老师账号</button></div><div class="table-wrap"><table><thead><tr><th>登录账号</th><th>显示姓名</th><th>身份</th><th>操作</th></tr></thead><tbody>${teachers.map(item => `<tr><td class="mono">${esc(item.username)}</td><td>${esc(item.displayName || '—')}</td><td>${item.role === 'teacher' ? '老师' : '已撤销教师权限'}</td><td>${item.role === 'teacher' ? `<button data-action="rename-teacher" data-username="${esc(item.username)}">修改姓名</button> <button data-action="reset-teacher" data-username="${esc(item.username)}">重置临时密码</button> <button class="danger" data-action="revoke-teacher" data-username="${esc(item.username)}">撤销权限</button>` : '可通过“开通老师账号”重新授权'}</td></tr>`).join('') || '<tr><td colspan="4">暂无老师账号，请点击右上角开通。</td></tr>'}</tbody></table></div>`;
   }
   async function loadClasses() {
     classes = await paged('classes', 'classes');
@@ -182,6 +183,11 @@
       if (action === 'close') { dialog.close(); $('#dialog-content').replaceChildren(); preview = null; }
       else if (action === 'logout') { await auth.clearSession(); dialog.close(); $('#dialog-content').replaceChildren(); renderSignedOut(); }
       else if (action === 'password') modal('账号密码', passwordForm(false));
+      else if (action === 'profile' || action === 'rename-teacher') {
+        const target = action === 'profile' ? user : teacherAccounts.find(item => item.username === button.dataset.username);
+        if (!target) throw new Error('账号信息已改变，请刷新重试。');
+        modal('修改显示姓名', `<form id="name-form" data-mode="${action}" data-username="${esc(target.username)}"><label>登录账号<input value="${esc(target.username)}" readonly aria-readonly="true" autocomplete="off"></label><label>显示姓名<input name="displayName" value="${esc(target.displayName || '')}" autocomplete="name" maxlength="40" placeholder="请输入中文姓名，例如：李明" required></label><p class="help">学生和管理员会看到此姓名。这里不填写密码；保存后登录账号、密码、班级和进度保持不变。</p><button type="submit" class="primary">保存姓名</button></form>`);
+      }
       else if (action === 'select-class') await selectClass(button.dataset.id);
       else if (action === 'refresh') await selectClass(selected.id);
       else if (action === 'previous' || action === 'next') { currentPage += action === 'next' ? 1 : -1; renderStudents(); }
@@ -208,7 +214,7 @@
           preview = await api(`classes/${selected.id}/import/preview`, { rows }); renderPreview();
         } catch (cause) { $('#import-status').textContent = '预览未完成，请按错误提示处理后重试。'; throw cause; }
       } else if (action === 'commit-import') await commitImport();
-      else if (action === 'add-teacher') modal('开通老师账号', '<form id="teacher-form"><label>开通方式<select name="mode"><option value="new">创建新老师账号</option><option value="existing">给已有账号授予老师权限</option></select></label><label>账号<input name="username" minlength="2" maxlength="24" autocomplete="off" required></label><label>老师姓名（用于新账号）<input name="displayName" maxlength="40" required></label><p class="help">新账号生成随机临时密码，首次登录须修改。已有账号保留密码、资料与进度。</p><button class="primary" type="submit">开通老师权限</button></form>');
+      else if (action === 'add-teacher') modal('开通老师账号', '<form id="teacher-form"><label>开通方式<select name="mode"><option value="new">创建新老师账号</option><option value="existing">给已有账号授予老师权限</option></select></label><label>登录账号<input name="username" minlength="2" maxlength="24" autocomplete="username" placeholder="用于登录，例如：teacher01" required></label><label>显示姓名（用于新账号）<input name="displayName" maxlength="40" autocomplete="name" placeholder="填写中文姓名，不要填写密码" required></label><p class="help">新账号生成随机临时密码，首次登录须修改。已有账号保留密码、资料与进度。</p><button class="primary" type="submit">开通老师权限</button></form>');
       else if (action === 'reset-teacher') {
         if (!await confirmAction(`为 ${button.dataset.username} 生成新的临时密码？此老师的现有登录将失效，首次登录必须改密。`)) return;
         const response = await api('admin/teachers/reset-password', { username: button.dataset.username });
@@ -220,7 +226,7 @@
     });
   });
   document.addEventListener('submit', event => {
-    const form = event.target; if (!['password-form', 'class-form', 'teacher-form'].includes(form.id)) return;
+    const form = event.target; if (!['password-form', 'class-form', 'teacher-form', 'name-form'].includes(form.id)) return;
     event.preventDefault();
     run(async () => {
       notice(''); const fields = Object.fromEntries(new FormData(form));
@@ -229,6 +235,12 @@
         user = await auth.changePassword(fields.currentPassword, fields.newPassword); form.reset(); dialog.close(); $('#dialog-content').replaceChildren();
         notice('密码已更新，其他设备需要重新登录。');
         if (user.role === 'student') location.assign('./?learn=1'); else await loadHome();
+      } else if (form.id === 'name-form') {
+        const own = form.dataset.mode === 'profile';
+        const response = await api(own ? 'profile' : 'admin/teachers/profile', { displayName: fields.displayName, ...(own ? {} : { username: form.dataset.username }) });
+        dialog.close();
+        if (own) { user = response.user; await loadHome(); } else await renderTeachers();
+        notice('显示姓名已更新，登录账号和密码不变。');
       } else if (form.id === 'class-form') {
         const response = form.dataset.mode === 'create-class' ? await api('classes', { id: form.dataset.id, name: fields.name }) : await api(`classes/${form.dataset.id}`, { name: fields.name }, 'PUT');
         selected = response.class; dialog.close(); await loadClasses();

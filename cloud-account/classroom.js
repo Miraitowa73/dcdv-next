@@ -84,6 +84,23 @@ function createClassroom({ store, now = Date.now, rateLimit }) {
     return { ...row, status: account ? (member?.value.active ? 'member' : 'existing') : 'new', nameConflict: !!priorName && priorName !== row.name, priorName };
   }
   return async function route({ path, method, data, user, query }) {
+    if (method === 'POST' && ['/api/account/profile', '/api/account/admin/teachers/profile'].includes(path)) {
+      const adminEdit = path.endsWith('/teachers/profile');
+      if (adminEdit) role(user, 'admin');
+      else if (!['teacher', 'admin'].includes(roleOf(user))) fail(403, 'FORBIDDEN', '当前账号不能修改老师姓名。');
+      const allowed = adminEdit ? ['username', 'displayName'] : ['displayName'];
+      if (Object.keys(data).some(key => !allowed.includes(key))) fail(400, 'INVALID_PROFILE', '此入口仅支持修改显示姓名。');
+      const name = displayName(data.displayName);
+      const key = adminEdit ? keyFor(data.username) : user.usernameKey;
+      await rateLimit('profile-change', user.id, 20, 60000);
+      return audited(user, adminEdit ? 'teacher.rename' : 'profile.rename', key, async () => {
+        const value = await upsert('users', key, current => {
+          if (!current || (adminEdit ? roleOf(current) !== 'teacher' : current.id !== user.id || !['teacher', 'admin'].includes(roleOf(current)))) fail(404, 'TEACHER_NOT_FOUND', '老师账号不存在或权限已改变。');
+          return { ...current, displayName: name };
+        });
+        return { user: publicUser(value) };
+      });
+    }
     if (path === '/api/account/admin/teachers') {
       role(user, 'admin');
       if (method === 'GET') {

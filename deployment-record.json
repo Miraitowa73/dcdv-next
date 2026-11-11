@@ -31,11 +31,11 @@
     "test_frontend_url": "https://miraitowa73.github.io/dcdv-next/cloud-test/",
     "test_frontend_enabled": true,
     "test_frontend_approved_on": "2026-11-09",
-    "verified_at": "2026-11-10T05:41:43.104Z",
-    "regression_tests_passed": 100,
-    "cloud_smoke_checks_passed": 14,
+    "verified_at": "2026-11-11T11:27:33.939Z",
+    "regression_tests_passed": 102,
+    "cloud_smoke_checks_passed": 16,
     "budget_alerts_configured": false,
-    "deployment_zip_sha256": "65312a4d3bb19a5f96168516dcc21ebe3d2ef427e9a00c6db2f6361d6dfb55fd",
+    "deployment_zip_sha256": "cdb95431fe13c6443118598e35462be4ee2fe9c3c7f385bb28ad98c1c8fb29e6",
     "classroom_status": "deployed-and-browser-verified",
     "administrator_initialized_at": "2026-11-09T04:05:48.183Z",
     "bootstrap_environment_removed": true,
@@ -74,6 +74,13 @@
       "local_browser_flow": "failed-once-then-first-pass-teacher-shows-11-seconds-and-1-error",
       "old_progress": "unknown-or-partial-not-zero",
       "new_cloud_resources": false
+    },
+    "teacher_display_name": {
+      "backend_status": "deployed-and-cloud-smoke-verified",
+      "verified_at": "2026-11-11T11:27:33.939Z",
+      "self_edit": "teacher-and-admin-only",
+      "admin_edit": "active-teacher-only",
+      "local_browser_self_edit": "passed"
     }
   }
 }

@@ -82,7 +82,7 @@ function createAccountService({ store, allowedOrigins = ['https://miraitowa73.gi
       }
       if (method === 'GET' && path === '/api/account/health') {
         await store.get('users', '__health__');
-        return result(200, { ok: true, service: 'dcdv-cloud-account', storage: 'tablestore', version: 3, features: ['classrooms', 'learning-metrics-v1'] });
+        return result(200, { ok: true, service: 'dcdv-cloud-account', storage: 'tablestore', version: 4, features: ['classrooms', 'learning-metrics-v1', 'teacher-display-name-v1'] });
       }
       if (Buffer.byteLength(body) > MAX_PROGRESS_BYTES + 4096) fail(413, 'BODY_TOO_LARGE', '请求内容过大。');
       let data = {};

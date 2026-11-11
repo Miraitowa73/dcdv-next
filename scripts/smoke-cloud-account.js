@@ -21,6 +21,7 @@ async function request(path, method = 'GET', data, token, extra = {}) {
   const health = await request('health');
   assert.equal(health.status, 200); assert.equal(health.data.storage, 'tablestore'); checks.push('durable-store-health');
   assert.ok(health.data.features?.includes('learning-metrics-v1')); checks.push('learning-metrics-enabled');
+  assert.ok(health.data.features?.includes('teacher-display-name-v1')); checks.push('teacher-display-name-enabled');
   const preflight = await request('progress', 'OPTIONS', undefined, undefined, { 'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'authorization,content-type' });
   assert.equal(preflight.status, 204); assert.equal(preflight.headers.get('access-control-allow-origin'), origin); checks.push('cors-preflight');
   assert.equal((await request('progress')).status, 401); checks.push('unauthenticated-progress-denied');
@@ -32,6 +33,8 @@ async function request(path, method = 'GET', data, token, extra = {}) {
   assert.equal(created.data.user.role, 'student');
   assert.equal((await request('admin/teachers', 'GET', undefined, tokenA)).status, 403);
   assert.equal((await request('classes', 'GET', undefined, tokenA)).status, 403); checks.push('student-management-denied');
+  assert.equal((await request('profile', 'POST', { displayName: '无权限测试' }, tokenA)).status, 403);
+  assert.equal((await request('admin/teachers/profile', 'POST', { username, displayName: '无权限测试' }, tokenA)).status, 403); checks.push('student-teacher-name-edit-denied');
   const membership = await request('my-classes', 'GET', undefined, tokenA);
   assert.equal(membership.status, 200, JSON.stringify(membership.data)); assert.deepEqual(membership.data.classes, []); checks.push('class-members-range-permission');
   assert.deepEqual((await request('progress', 'GET', undefined, tokenA)).data.state, initial);
